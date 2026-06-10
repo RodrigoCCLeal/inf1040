@@ -4,7 +4,7 @@
 #define MAX_RESTAURANTES 200
 #define MAX_NOME_REST    150
 #define MAX_END_REST     200
-#define MAX_FEED_REST     10
+#define MAX_FEED_REST      6
 
 typedef struct {
     long long CNPJ;                  /* CNPJ tem 14 dígitos → long long */

@@ -242,6 +242,8 @@ Prato *getPratos(int IDPrato)
 
 ListaPratos *getListaPratos(const char *nome_prato)
 {
+    if (!nome_prato) return NULL;
+
     ListaPratos *lista = malloc(sizeof *lista);
     if (!lista) return NULL;
     lista->quantidade = 0;
@@ -287,20 +289,20 @@ ListaPratos *getMenu(long long CNPJ)
 
     if (lista->quantidade == 0) {
         free(lista->itens);
-        lista->itens = NULL;
+        free(lista);
+        return NULL;
     }
     return lista;
 }
 
 ListaPratos *getFeedPratos(void)
 {
-    int n = total < MAX_FEED ? total : MAX_FEED;
+    if (total < MAX_FEED) return NULL;
 
+    int n = MAX_FEED;
     ListaPratos *lista = malloc(sizeof *lista);
     if (!lista) return NULL;
     lista->quantidade = 0;
-
-    if (n == 0) { lista->itens = NULL; return lista; }
 
     lista->itens = malloc(sizeof(Prato) * n);
     if (!lista->itens) { free(lista); return NULL; }

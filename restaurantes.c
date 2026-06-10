@@ -188,11 +188,10 @@ void initRestaurantes(const char *arquivo)
             }
             if (duplicado) continue;
 
-            /* descarta restaurantes sem pratos */
+            /* descarta restaurantes sem pratos (getMenu retorna NULL se não há pratos) */
             ListaPratos *menu = getMenu(r.CNPJ);
-            int tem_prato = menu && menu->quantidade > 0;
+            if (!menu) continue;
             freeListaPratos(menu);
-            if (!tem_prato) continue;
 
             if (total < MAX_RESTAURANTES)
                 banco[total++] = r;
@@ -241,6 +240,8 @@ void saveRestaurantes(const char *arquivo)
 
 ListaRest *getListaRest(const char *nome_rest)
 {
+    if (!nome_rest) return NULL;
+
     ListaRest *lista = malloc(sizeof *lista);
     if (!lista) return NULL;
     lista->quantidade = 0;
@@ -266,20 +267,20 @@ ListaRest *getListaRest(const char *nome_rest)
 
     if (lista->quantidade == 0) {
         free(lista->itens);
-        lista->itens = NULL;
+        free(lista);
+        return NULL;
     }
     return lista;
 }
 
 ListaRest *getFeedRest(void)
 {
-    int n = total < MAX_FEED_REST ? total : MAX_FEED_REST;
+    if (total < MAX_FEED_REST) return NULL;
 
+    int n = MAX_FEED_REST;
     ListaRest *lista = malloc(sizeof *lista);
     if (!lista) return NULL;
     lista->quantidade = 0;
-
-    if (n == 0) { lista->itens = NULL; return lista; }
 
     lista->itens = malloc(sizeof(Restaurante) * n);
     if (!lista->itens) { free(lista); return NULL; }

@@ -5,7 +5,7 @@
 #define MAX_NOME_PRATO 100
 #define MAX_DESC_PRATO 300
 #define MAX_END_PRATO  200
-#define MAX_FEED        10
+#define MAX_FEED        20
 
 typedef struct {
     int       IDPrato;
