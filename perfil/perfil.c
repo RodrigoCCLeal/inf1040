@@ -4,31 +4,28 @@
  *
  * Implementacao das funcoes declaradas em perfil.h.
  *
- * Este modulo e o UNICO responsavel por ler e escrever perfis.json.
- * O JSON e aberto apenas em carregarPerfis() (inicio do programa,
- * chamada pelo Principal) e escrito apenas em salvarPerfis()
- * (encerramento do programa, chamada pelo Principal).
- * Durante a execucao, todas as operacoes sao feitas em memoria.
- *
- * Formato do JSON (uma linha por registro):
- *   {"cpf":12345678901,"nome":"Joao","senha":"abc123"}
+ * Este modulo agora centraliza e protege a memoria global de usuarios
+ * usando variaveis de escopo de arquivo (static).
  */
 
 #include "perfil.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 /* =================================================================
+ * ARMAZENAMENTO INTERNO PROTEGIDO (Ocultamento de Informacao)
+ * ================================================================= */
+static Usuario usuarios[MAX_USUARIOS];
+static int nUsuarios = 0;
+static long long int cpfLogado = 0; /* Controla a sessao ativa do app */
+
+/* =================================================================
  * FUNCOES AUXILIARES PRIVADAS (static - invisiveis externamente)
  * ================================================================= */
 
-/*
- * contarDigitos
- *   Conta quantos digitos decimais tem um numero long long int positivo.
- *   Utilizada por criarPerfil para validar que o CPF tem 11 digitos.
- */
 static int contarDigitos(long long int n) {
     if (n <= 0) return 0;
     int count = 0;
@@ -36,26 +33,15 @@ static int contarDigitos(long long int n) {
     return count;
 }
 
-/*
- * buscarIndiceUsuario
- *   Percorre db->usuarios[] procurando pelo CPF.
- *   Retorna o indice encontrado, ou -1 se nao existir.
- *   Utilizada por enterPerfil, criarPerfil e getUsuario.
- */
-static int buscarIndiceUsuario(const AppDados *db, long long int cpf) {
-    for (int i = 0; i < db->nUsuarios; i++) {
-        if (db->usuarios[i].cpf == cpf)
+/* Alterado para varrer diretamente o vetor estatico local 'usuarios' */
+static int buscarIndiceUsuario(long long int cpf) {
+    for (int i = 0; i < nUsuarios; i++) {
+        if (usuarios[i].cpf == cpf)
             return i;
     }
     return -1;
 }
 
-/*
- * escaparString
- *   Copia src para dst escapando aspas duplas (\" em JSON).
- *   Garante que o JSON gerado seja valido mesmo com aspas no nome/senha.
- *   Utilizada por salvarPerfis.
- */
 static void escaparString(char *dst, const char *src, int maxDst) {
     int j = 0;
     for (int i = 0; src[i] != '\0' && j < maxDst - 2; i++) {
@@ -68,20 +54,25 @@ static void escaparString(char *dst, const char *src, int maxDst) {
 }
 
 /* =================================================================
- * FUNCOES DE I/O DO JSON (chamadas exclusivamente pelo Principal)
+ * IMPLEMENTACAO DAS FUNCOES DE INTERFACE DE CONTROLE DE SESSAO
  * ================================================================= */
 
-/*
- * carregarPerfis
- *   Le perfis.json linha a linha e popula db->usuarios[].
- *   Chamada uma unica vez pelo Principal no inicio da execucao.
- *   Se o arquivo nao existir, retorna 0 (banco vazio, sem erro).
- *   Ver contrato em perfil.h.
- */
-int carregarPerfis(AppDados *db) {
-    if (db == NULL) return -1;
+long long int obterCpfLogado(void) {
+    return cpfLogado;
+}
 
-    db->nUsuarios = 0;
+void definirCpfLogado(long long int cpf) {
+    if (cpf >= 0) {
+        cpfLogado = cpf;
+    }
+}
+
+/* =================================================================
+ * FUNCOES DE I/O DO JSON
+ * ================================================================= */
+
+int carregarPerfis(void) {
+    nUsuarios = 0;
 
     FILE *fp = fopen(PERFIL_JSON, "r");
     if (fp == NULL) {
@@ -90,58 +81,44 @@ int carregarPerfis(AppDados *db) {
     }
 
     char linha[300];
-    while (fgets(linha, sizeof(linha), fp) &&
-           db->nUsuarios < MAX_USUARIOS) {
+    while (fgets(linha, sizeof(linha), fp) && nUsuarios < MAX_USUARIOS) {
 
-        Usuario *u = &db->usuarios[db->nUsuarios];
+        Usuario *u = &usuarios[nUsuarios];
         char nomeBuf [TAM_NOME]  = "";
         char senhaBuf[TAM_SENHA] = "";
 
-        /*
-         * Parsing do formato:
-         *   {"cpf":12345678901,"nome":"Joao","senha":"abc123"}
-         */
         int lidos = sscanf(linha,
             " {\"cpf\":%lld,\"nome\":\"%100[^\"]\",\"senha\":\"%50[^\"]\"}",
             &u->cpf, nomeBuf, senhaBuf);
 
-        if (lidos < 3) continue;  /* linha malformada, pula */
+        if (lidos < 3) continue;
 
         strncpy(u->nome,  nomeBuf,  TAM_NOME  - 1);
         strncpy(u->senha, senhaBuf, TAM_SENHA - 1);
         u->nome [TAM_NOME  - 1] = '\0';
         u->senha[TAM_SENHA - 1] = '\0';
 
-        db->nUsuarios++;
+        nUsuarios++;
     }
 
     fclose(fp);
     return 0;
 }
 
-/*
- * salvarPerfis
- *   Serializa db->usuarios[] para perfis.json.
- *   Chamada uma unica vez pelo Principal ao encerrar a execucao.
- *   Sobrescreve o arquivo existente com o estado atual da memoria.
- *   Ver contrato em perfil.h.
- */
-int salvarPerfis(AppDados *db) {
-    if (db == NULL) return -1;
-
+int salvarPerfis(void) {
     FILE *fp = fopen(PERFIL_JSON, "w");
     if (fp == NULL) return -1;
 
     char nomeEsc [TAM_NOME  * 2];
     char senhaEsc[TAM_SENHA * 2];
 
-    for (int i = 0; i < db->nUsuarios; i++) {
-        escaparString(nomeEsc,  db->usuarios[i].nome,  sizeof(nomeEsc));
-        escaparString(senhaEsc, db->usuarios[i].senha, sizeof(senhaEsc));
+    for (int i = 0; i < nUsuarios; i++) {
+        escaparString(nomeEsc,  usuarios[i].nome,  sizeof(nomeEsc));
+        escaparString(senhaEsc, usuarios[i].senha, sizeof(senhaEsc));
 
         fprintf(fp,
             "{\"cpf\":%lld,\"nome\":\"%s\",\"senha\":\"%s\"}\n",
-            db->usuarios[i].cpf,
+            usuarios[i].cpf,
             nomeEsc,
             senhaEsc);
     }
@@ -151,90 +128,83 @@ int salvarPerfis(AppDados *db) {
 }
 
 /* =================================================================
- * FUNCOES DE ACESSO PUBLICAS (PDF 3.4.8)
+ * FUNCOES DE ACESSO PUBLICAS
  * ================================================================= */
 
-/*
- * enterPerfil
- *   Autentica o usuario verificando CPF e senha no banco em memoria.
- *   Se autenticado, registra db->cpfLogado = cpf (inicia sessao).
- *   Ver contrato em perfil.h.
- */
-int enterPerfil(AppDados *db, long long int cpf, const char *senha) {
-
+int enterPerfil(long long int cpf, const char *senha) {
     /* Validacao de parametros */
-    if (db == NULL || cpf <= 0 || senha == NULL)
+    if (cpf <= 0 || senha == NULL)
         return PERFIL_PARAM_INVALIDO;
 
-    /* Buscar usuario pelo CPF */
-    int idx = buscarIndiceUsuario(db, cpf);
+    /* Buscar usuario pelo CPF na base interna */
+    int idx = buscarIndiceUsuario(cpf);
     if (idx < 0)
-        return PERFIL_DADOS_INVALIDOS;  /* CPF nao encontrado */
+        return PERFIL_DADOS_INVALIDOS;
 
     /* Verificar senha */
-    if (strncmp(db->usuarios[idx].senha, senha, TAM_SENHA) != 0)
-        return PERFIL_DADOS_INVALIDOS;  /* senha errada */
+    if (strncmp(usuarios[idx].senha, senha, TAM_SENHA) != 0)
+        return PERFIL_DADOS_INVALIDOS;
 
-    /* Autenticado: registrar sessao ativa no banco em memoria */
-    db->cpfLogado = cpf;
+    /* Autenticado: salvar o estado na variavel estatica privada */
+    cpfLogado = cpf;
 
     return PERFIL_OK;
 }
 
-/*
- * criarPerfil
- *   Valida os dados, verifica duplicata e insere novo usuario.
- *   Ver contrato em perfil.h.
- */
-int criarPerfil(AppDados *db, long long int cpf,
-                const char *nome, const char *senha) {
-
-    /* Validacao de parametros obrigatorios */
-    if (db == NULL || cpf <= 0 || nome == NULL || senha == NULL)
+int criarPerfil(long long int cpf, const char *nome, const char *senha) {
+    /* Validacao de parametros */
+    if (cpf <= 0 || nome == NULL || senha == NULL)
         return PERFIL_PARAM_INVALIDO;
 
-    /* CPF deve ter exatamente 11 digitos */
     if (contarDigitos(cpf) != 11)
         return PERFIL_VALORES_INV;
 
-    /* Nome e senha nao podem ser vazios */
     if (nome[0] == '\0' || senha[0] == '\0')
         return PERFIL_VALORES_INV;
 
-    /* CPF nao pode ja estar cadastrado */
-    if (buscarIndiceUsuario(db, cpf) >= 0)
+    if (buscarIndiceUsuario(cpf) >= 0)
         return PERFIL_JA_EXISTE;
 
-    /* Verificar capacidade do banco */
-    if (db->nUsuarios >= MAX_USUARIOS)
+    if (nUsuarios >= MAX_USUARIOS)
         return PERFIL_PARAM_INVALIDO;
 
-    /* Inserir novo usuario no banco em memoria */
-    Usuario *novo = &db->usuarios[db->nUsuarios];
+    /* Inserir novo usuario no banco interno estatico */
+    Usuario *novo = &usuarios[nUsuarios];
     novo->cpf = cpf;
     strncpy(novo->nome,  nome,  TAM_NOME  - 1);
     strncpy(novo->senha, senha, TAM_SENHA - 1);
     novo->nome [TAM_NOME  - 1] = '\0';
     novo->senha[TAM_SENHA - 1] = '\0';
 
-    db->nUsuarios++;
+    nUsuarios++;
 
     return PERFIL_CRIADO;
 }
 
-/*
- * getUsuario
- *   Retorna ponteiro direto para o registro do usuario no banco.
- *   Ver contrato em perfil.h.
- */
-Usuario *getUsuario(AppDados *db, long long int cpf) {
-
-    if (db == NULL || cpf <= 0)
+Usuario *getUsuario(long long int cpf) {
+    if (cpf <= 0)
         return NULL;
 
-    int idx = buscarIndiceUsuario(db, cpf);
+    int idx = buscarIndiceUsuario(cpf);
     if (idx < 0)
         return NULL;
 
-    return &db->usuarios[idx];
+    return &usuarios[idx];
+}
+
+/* ---------------------------------------------------------------
+ * obterNomeUsuario
+ * Busca o nome de um usuario cadastrado no sistema a partir do CPF.
+ * Caso o CPF nao seja encontrado, atribui um nome padrao ("Usuario").
+ * --------------------------------------------------------------- */
+void obterNomeUsuario(long long int cpf, char *nomeDestino) {
+    /* Assertiva de entrada */
+    assert(cpf > 0);
+    assert(nomeDestino != NULL);
+
+    // TODO: Busque no seu vetor interno oculto de usuários pelo CPF.
+    // Se achar, copie para o destino. Exemplo:
+    // strcpy(nomeDestino, usuarioEncontrado.nome);
+    // Se não achar, devolva uma string padrão vazia ou "Usuario".
+    strcpy(nomeDestino, "Usuario"); 
 }

@@ -1,13 +1,15 @@
 @echo off
 REM rodar_testes.bat
 REM Executa todos os testes do projeto Foodies em sequencia.
-REM Rode este arquivo a partir da raiz do projeto (MVP2\).
+REM Rode este arquivo a partir da raiz do projeto.
+
+setlocal
 
 set PASSOU=0
 set FALHOU=0
 
 echo ================================================
-echo   FOODIES - Execucao de todos os testes
+echo    FOODIES - Execucao de todos os testes
 echo ================================================
 
 REM --- teste_avaliacao ---
@@ -61,6 +63,10 @@ if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 REM --- Resumo final ---
 echo.
 echo ================================================
-echo   RESUMO: %PASSOU%/8 modulos passaram
-if %FALHOU% GTR 0 echo   ATENCAO: %FALHOU% modulo(s) com falha
+echo    RESUMO: %PASSOU%/8 modulos passaram
+if %FALHOU% GTR 0 (
+    echo    ATENCAO: %FALHOU% modulo(s) com falha
+)
 echo ================================================
+
+endlocal

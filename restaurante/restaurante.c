@@ -4,15 +4,12 @@
  *
  * Implementacao das funcoes declaradas em restaurante.h.
  *
- * DADOS FIXOS: este modulo apenas LE restaurantes.json.
- * O arquivo nunca e reescrito — restaurantes sao imutaveis durante
- * toda a execucao do programa (usuarios nao podem adicionar ou remover).
- *
- * Formato do JSON (uma linha por registro):
- *   {"cnpj":11111111000101,"nome":"Toca da Traira","endereco":"Av. Barra, 100"}
+ * Este modulo centraliza e protege a memoria global de restaurantes
+ * usando variaveis de escopo de arquivo (static).
  */
 
 #include "restaurante.h"
+#include "../pratos/pratos.h"  
 
 #include <stdio.h>
 #include <string.h>
@@ -21,15 +18,15 @@
 #include <time.h>
 
 /* =================================================================
+ * ARMAZENAMENTO INTERNO PROTEGIDO (Ocultamento de Informacao)
+ * ================================================================= */
+static Restaurante restaurantes[MAX_RESTAURANTES];
+static int nRestaurantes = 0;
+
+/* =================================================================
  * FUNCOES AUXILIARES PRIVADAS (static)
  * ================================================================= */
 
-/*
- * contemSubstring
- *   Verifica se haystack contem needle como substring, case-insensitive.
- *   Retorna 1 se contem, 0 caso contrario.
- *   Utilizada por getListaRest para busca parcial pelo nome.
- */
 static int contemSubstring(const char *haystack, const char *needle) {
     if (needle[0] == '\0') return 0;
     for (int i = 0; haystack[i] != '\0'; i++) {
@@ -44,11 +41,6 @@ static int contemSubstring(const char *haystack, const char *needle) {
     return 0;
 }
 
-/*
- * shuffleIndices
- *   Algoritmo Fisher-Yates: embaralha indices[] in-place.
- *   Utilizada por getFeedRest para selecao aleatoria sem repeticao.
- */
 static void shuffleIndices(int *indices, int n) {
     for (int i = n - 1; i > 0; i--) {
         int j      = rand() % (i + 1);
@@ -58,7 +50,6 @@ static void shuffleIndices(int *indices, int n) {
     }
 }
 
-/* Garante que srand() seja chamado apenas uma vez */
 static int sementeInicializada = 0;
 
 static void inicializarSemente(void) {
@@ -69,34 +60,41 @@ static void inicializarSemente(void) {
 }
 
 /* =================================================================
+ * IMPLEMENTACAO DAS FUNCOES DE INTERFACE DE API
+ * ================================================================= */
+
+int obterTotalRestaurantes(void) {
+    return nRestaurantes;
+}
+
+Restaurante obterRestaurantePorIndice(int indice) {
+    Restaurante vazio = {0, "", ""};
+    if (indice < 0 || indice >= nRestaurantes) {
+        return vazio;
+    }
+    return restaurantes[indice];
+}
+
+/* =================================================================
  * FUNCAO DE CARGA DO JSON (chamada exclusivamente pelo Principal)
  * ================================================================= */
 
-/*
- * carregarRestaurantes
- *   Le restaurantes.json e popula db->restaurantes[].
- *   Chamada uma unica vez no inicio. O arquivo nao e alterado depois.
- *   Ver contrato em restaurante.h.
- */
-int carregarRestaurantes(AppDados *db) {
-    if (db == NULL) return -1;
-
-    db->nRestaurantes = 0;
+int carregarRestaurantes(void) {
+    nRestaurantes = 0;
 
     FILE *fp = fopen(RESTAURANTE_JSON, "r");
-    if (fp == NULL) return 0;  /* arquivo nao existe ainda, sem erro */
+    if (fp == NULL) return 0;
 
     char linha[500];
-    while (fgets(linha, sizeof(linha), fp) &&
-           db->nRestaurantes < MAX_RESTAURANTES) {
+    while (fgets(linha, sizeof(linha), fp) && nRestaurantes < MAX_RESTAURANTES) {
 
-        Restaurante *r = &db->restaurantes[db->nRestaurantes];
+        Restaurante *r = &restaurantes[nRestaurantes];
         char nomeBuf[TAM_NOME]     = "";
         char endBuf [TAM_ENDERECO] = "";
 
         int lidos = sscanf(linha,
             " {\"cnpj\":%lld,\"nome\":\"%100[^\"]\","
-            "\"endereco\":\"%200[^\"]\"}",
+            " \"endereco\":\"%200[^\"]\"}",
             &r->cnpj, nomeBuf, endBuf);
 
         if (lidos < 3) continue;
@@ -106,7 +104,7 @@ int carregarRestaurantes(AppDados *db) {
         r->nome    [TAM_NOME     - 1] = '\0';
         r->endereco[TAM_ENDERECO - 1] = '\0';
 
-        db->nRestaurantes++;
+        nRestaurantes++;
     }
 
     fclose(fp);
@@ -114,28 +112,19 @@ int carregarRestaurantes(AppDados *db) {
 }
 
 /* =================================================================
- * FUNCOES DE ACESSO PUBLICAS (PDF 3.4.6)
+ * FUNCOES DE ACESSO PUBLICAS
  * ================================================================= */
 
-/*
- * getListaRest
- *   Busca restaurantes por substring no nome (case-insensitive).
- *   Ver contrato em restaurante.h.
- */
-int getListaRest(AppDados *db, const char *nome_rest,
-                 Restaurante *resultado, int maxResultados) {
-
-    if (db == NULL || nome_rest == NULL ||
-        resultado == NULL || maxResultados <= 0)
+int getListaRest(const char *nome_rest, Restaurante *resultado, int maxResultados) {
+    if (nome_rest == NULL || resultado == NULL || maxResultados <= 0)
         return REST_NOME_INVALIDO;
 
-    /* PDF 2.4: nome vazio nao retorna nada */
     if (nome_rest[0] == '\0') return 0;
 
     int encontrados = 0;
-    for (int i = 0; i < db->nRestaurantes && encontrados < maxResultados; i++) {
-        if (contemSubstring(db->restaurantes[i].nome, nome_rest)) {
-            resultado[encontrados] = db->restaurantes[i];
+    for (int i = 0; i < nRestaurantes && encontrados < maxResultados; i++) {
+        if (contemSubstring(restaurantes[i].nome, nome_rest)) {
+            resultado[encontrados] = restaurantes[i];
             encontrados++;
         }
     }
@@ -143,27 +132,21 @@ int getListaRest(AppDados *db, const char *nome_rest,
     return encontrados;
 }
 
-/*
- * getFeedRest
- *   Seleciona 6 restaurantes aleatorios via Fisher-Yates.
- *   Ver contrato em restaurante.h.
- */
-int getFeedRest(AppDados *db, Restaurante *resultado, int maxResultados) {
-
-    if (db == NULL || resultado == NULL) return REST_PARAM_INVALIDO;
-    if (db->nRestaurantes < REST_FEED_QTD) return REST_INSUFICIENTE;
+int getFeedRest(Restaurante *resultado, int maxResultados) {
+    if (resultado == NULL || maxResultados <= 0) return REST_PARAM_INVALIDO;
+    if (nRestaurantes < REST_FEED_QTD) return REST_INSUFICIENTE;
 
     inicializarSemente();
 
     int indices[MAX_RESTAURANTES];
-    for (int i = 0; i < db->nRestaurantes; i++) indices[i] = i;
-    shuffleIndices(indices, db->nRestaurantes);
+    for (int i = 0; i < nRestaurantes; i++) indices[i] = i;
+    shuffleIndices(indices, nRestaurantes);
 
     int copiar = REST_FEED_QTD;
     if (copiar > maxResultados) copiar = maxResultados;
 
     for (int i = 0; i < copiar; i++) {
-        resultado[i] = db->restaurantes[indices[i]];
+        resultado[i] = restaurantes[indices[i]];
     }
 
     return copiar;
@@ -171,22 +154,15 @@ int getFeedRest(AppDados *db, Restaurante *resultado, int maxResultados) {
 
 /*
  * getMenuRestaurante
- *   Retorna todos os pratos do restaurante identificado por cnpj.
- *   Ver contrato em restaurante.h.
+ * Como 'db->pratos' nao existe mais, esta funcao delega a varredura
+ * para a API publica do modulo Pratos (ex: getPratosPorCnpj), mantendo o encapsulamento.
  */
-int getMenuRestaurante(AppDados *db, long long int cnpj,
-                       Prato *resultado, int maxResultados) {
-
-    if (db == NULL || cnpj <= 0 || resultado == NULL || maxResultados <= 0)
+int getMenuRestaurante(long long int cnpj, Prato *resultado, int maxResultados) {
+    if (cnpj <= 0 || resultado == NULL || maxResultados <= 0)
         return REST_PARAM_INVALIDO;
 
-    int encontrados = 0;
-    for (int i = 0; i < db->nPratos && encontrados < maxResultados; i++) {
-        if (db->pratos[i].cnpjRestaurante == cnpj) {
-            resultado[encontrados] = db->pratos[i];
-            encontrados++;
-        }
-    }
-
-    return encontrados;
+    /* * Encaminha o pedido diretamente para a nova funcao de interface de pratos, 
+     * a qual varrera os pratos dela isoladamente.
+     */
+    return getPratosPorCnpj(cnpj, resultado, maxResultados);
 }

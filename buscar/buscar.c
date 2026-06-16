@@ -5,30 +5,28 @@
  * Implementacao de enterBuscar declarada em buscar.h.
  *
  * ZERO I/O de arquivo neste modulo.
- * ZERO funcoes de busca neste modulo — getListaPratos e getListaRest
- * pertencem aos modulos Pratos e Restaurante respectivamente,
- * que sao os servidores responsaveis por esses dados encapsulados.
+ * ZERO armazenamento de estado global ou estatico.
  *
- * Dependencia: verificaLogin() do modulo Postar (PDF 3.4.8).
+ * Dependencia: verificaLogin() do modulo que gerencia sessões (ex: postar ou perfil).
  */
 
 #include "buscar.h"
-#include "../postar/postar.h"
+#include "../postar/postar.h" /* Necessario para chamar verificaLogin */
 #include <stddef.h>
 
 /*
  * enterBuscar
- *   Valida o login via verificaLogin e libera o fluxo de busca.
- *   Ver contrato completo em buscar.h.
+ * Valida o login via verificaLogin e libera o fluxo de busca.
+ * Ver contrato completo em buscar.h.
  */
-int enterBuscar(AppDados *db, long long int cpf) {
+int enterBuscar(long long int cpf) {
 
     /* Parametros invalidos */
-    if (db == NULL || cpf <= 0)
+    if (cpf <= 0)
         return BUSCAR_PARAM_INVALIDO;
 
-    /* Delega verificacao de sessao ao modulo Postar */
-    if (verificaLogin(db, cpf) != LOGIN_OK)
+    /* Delega verificacao de sessao de forma limpa, sem expor structs internas */
+    if (verificaLogin(cpf) != LOGIN_OK)
         return BUSCAR_CPF_INVALIDO;
 
     return BUSCAR_OK;

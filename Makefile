@@ -64,37 +64,37 @@ all: $(BIN_MAIN) $(BIN_AVAL) $(BIN_POST) $(BIN_BUSCAR) $(BIN_FEED) \
 $(BIN_MAIN): $(SRC_MAIN) $(SRC_PRINC) $(SRC_PERF) $(SRC_POST) $(SRC_AVAL) $(SRC_BUSCAR) $(SRC_FEED) $(SRC_REST) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
-# Avaliacao - usa math.h -> -lm
-$(BIN_AVAL): $(TEST_AVAL) $(SRC_AVAL)
+# Avaliacao - Agora depende de pratos.c devido a validacao getPratos()
+$(BIN_AVAL): $(TEST_AVAL) $(SRC_AVAL) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
-# Postar
+# Postar - Depende exclusivamente do seu proprio motor de sessoes
 $(BIN_POST): $(TEST_POST) $(SRC_POST)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Buscar - inclui dependencias de postar, restaurante e pratos para evitar 'undefined reference'
-$(BIN_BUSCAR): $(TEST_BUSCAR) $(SRC_BUSCAR) $(SRC_POST) $(SRC_REST) $(SRC_PRAT)
-	$(CC) $(CFLAGS) -o $@ $^
-
-# Feed - inclui dependencias de postar, restaurante e pratos para evitar 'undefined reference'
-$(BIN_FEED): $(TEST_FEED) $(SRC_FEED) $(SRC_POST) $(SRC_REST) $(SRC_PRAT)
-	$(CC) $(CFLAGS) -o $@ $^
-
-# Perfil
-$(BIN_PERF): $(TEST_PERF) $(SRC_PERF)
-	$(CC) $(CFLAGS) -o $@ $^
-
-# Principal
-$(BIN_PRINC): $(TEST_PRINC) $(SRC_PRINC) $(SRC_PERF) $(SRC_AVAL) $(SRC_REST) $(SRC_PRAT)
+# Buscar - CORRIGIDO: Agora adicionado $(SRC_AVAL) para resolver 'verificarSeAvaliado'
+$(BIN_BUSCAR): $(TEST_BUSCAR) $(SRC_BUSCAR) $(SRC_POST) $(SRC_REST) $(SRC_PRAT) $(SRC_AVAL)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
-# Restaurante
-$(BIN_REST): $(TEST_REST) $(SRC_REST)
+# Feed - CORRIGIDO: Adicionado $(SRC_REST) para resolver 'getFeedRest'
+$(BIN_FEED): $(TEST_FEED) $(SRC_FEED) $(SRC_POST) $(SRC_PRAT) $(SRC_AVAL) $(SRC_REST)
+	$(CC) $(CFLAGS) -o $@ $^ -lm
+
+# Perfil - Depende de postar para injetar estados de sessao via definirSessaoAtual()
+$(BIN_PERF): $(TEST_PERF) $(SRC_PERF) $(SRC_POST)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Pratos
-$(BIN_PRAT): $(TEST_PRAT) $(SRC_PRAT)
-	$(CC) $(CFLAGS) -o $@ $^
+# Principal - Orquestrador central de cargas e salvamentos JSON
+$(BIN_PRINC): $(TEST_PRINC) $(SRC_PRINC) $(SRC_PERF) $(SRC_AVAL) $(SRC_REST) $(SRC_PRAT) $(SRC_POST)
+	$(CC) $(CFLAGS) -o $@ $^ -lm
+
+# Restaurante - CORRIGIDO: Adicionado $(SRC_AVAL) para resolver a dependencia de pratos.c -> verificarSeAvaliado
+$(BIN_REST): $(TEST_REST) $(SRC_REST) $(SRC_PRAT) $(SRC_AVAL)
+	$(CC) $(CFLAGS) -o $@ $^ -lm
+
+# Pratos - Agora depende de avaliacao devido a checagem verificarSeAvaliado() para o feed
+$(BIN_PRAT): $(TEST_PRAT) $(SRC_PRAT) $(SRC_AVAL) $(SRC_PERF)
+	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 # ================================================================
 # EXECUCAO DOS TESTES

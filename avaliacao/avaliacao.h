@@ -1,103 +1,96 @@
 /*
  * avaliacao.h
- * Módulo de Avaliação – Foodies
+ * Modulo de Avaliacao – Foodies
  *
- * Responsável por: criar, editar e consultar avaliações de pratos.
+ * Responsavel por: criar, editar, consultar e persistir avaliacoes de pratos.
  *
- * REGRA DE I/O: este módulo NÃO abre nem fecha arquivos JSON.
- * Todas as operações são feitas sobre AppDados* (banco em memória).
- * O JSON é aberto/fechado exclusivamente pela main.
- *
- * Funções de acesso definidas no PDF §3.4.5:
- *   postAval  – cria uma avaliação no banco em memória
- *   verAval   – retorna avaliações de um prato (somente leitura)
- *
- * Função adicional de edição (§2.6 Requisitos Módulo Avaliação):
- *   editAval  – edita nota/comentário de avaliação própria
+ * Relacoes cliente-servidor:
+ * UI / PRINCIPAL -> AVALIACAO: postAval, editAval, carregarAvaliacoes, salvarAvaliacoes
+ * PRATOS (cliente) -> AVALIACAO (servidor): verificarSeAvaliado
  */
 
 #ifndef AVALIACAO_H
 #define AVALIACAO_H
 
-#include "../dados/dados.h"
+/* --- Limites comerciais e tamanhos realocados --- */
+#define MAX_AVALIACOES    5000
+#define TAM_COMENTARIO     401
 
-/* ─── Códigos de retorno ─────────────────────────────────────── */
-#define AVAL_OK               0   /* sucesso (com comentário)            */
-#define AVAL_OK_SEM_TXT       1   /* sucesso (sem comentário)            */
-#define AVAL_ERRO_ID_PRATO    2   /* idPrato não existe no banco         */
-#define AVAL_ERRO_NOTA        4   /* nota fora de [0,5] ou não-inteira   */
-#define AVAL_PARAM_INVALIDO  -1   /* ponteiro nulo ou valor ilegal       */
-#define AVAL_ERRO_EDICAO     -2   /* avaliação não encontrada            */
-#define AVAL_ERRO_PERMISSAO  -3   /* CPF não é o autor da avaliação      */
-#define AVAL_BANCO_CHEIO     -4   /* MAX_AVALIACOES atingido             */
+/* Avaliacao - Estrutura publica para trafego entre modulos */
+typedef struct {
+    int           idAval;       /* identificador unico */
+    float         nota;         /* numero inteiro de 0 a 5 */
+    long long int cpf;          /* autor da avaliacao (FK -> Usuario) */
+    int           idPrato;      /* prato avaliado (FK -> Prato) */
+    char          comentario[TAM_COMENTARIO];
+} Avaliacao;
 
-/* ─── Funções de acesso (PDF §3.4.5) ────────────────────────── */
+/* --- Nome do arquivo JSON deste modulo --- */
+#define AVALIACAO_JSON "avaliacoes.json"
+
+/* --- Codigos de retorno --- */
+#define AVAL_OK                0   /* sucesso (com comentario)            */
+#define AVAL_OK_SEM_TXT        1   /* sucesso (sem comentario)            */
+#define AVAL_ERRO_ID_PRATO     2   /* idPrato nao existe no banco         */
+#define AVAL_ERRO_NOTA         4   /* nota fora de [0,5] ou nao-inteira   */
+#define AVAL_PARAM_INVALIDO   -1   /* ponteiro nulo ou valor ilegal       */
+#define AVAL_ERRO_EDICAO      -2   /* avaliacao nao encontrada            */
+#define AVAL_ERRO_PERMISSAO   -3   /* CPF nao e o autor da avaliacao      */
+#define AVAL_BANCO_CHEIO      -4   /* MAX_AVALIACOES atingido             */
+
+/* =================================================================
+ * FUNCOES DE INTERFACE ADICIONAIS (API ENTRE MODULOS)
+ * ================================================================= */
+
+/*
+ * verificarSeAvaliado
+ * Atende diretamente o modulo Pratos para filtrar o feed de recomendacoes.
+ * Retorna 1 se o CPF ja avaliou o idPrato, ou 0 caso contrario.
+ */
+int verificarSeAvaliado(long long int cpf, int idPrato);
+
+/* =================================================================
+ * FUNCOES DE I/O E GERENCIAMENTO DO BANCO DE DADOS OCULTO
+ * ================================================================= */
+
+/*
+ * carregarAvaliacoes
+ * Le avaliacoes.json e popula o vetor estatico interno.
+ */
+int carregarAvaliacoes(void);
+
+/*
+ * salvarAvaliacoes
+ * Serializa o vetor estatico interno de avaliacoes para avaliacoes.json.
+ */
+int salvarAvaliacoes(void);
 
 /*
  * postAval
- *   Cria uma avaliação e a insere em db->avaliacoes[].
- *   O ID é gerado internamente (db->proximoIdAval).
- *   Nenhum arquivo é aberto ou gravado.
- *
- *   Parâmetros:
- *     db      – banco em memória (não pode ser NULL)
- *     cpf     – CPF do autor (long long int, deve ser > 0)
- *     idPrato – ID do prato avaliado (deve existir em db->pratos[])
- *     txt     – comentário opcional (NULL ou "" para omitir)
- *     nota    – número inteiro de 0 a 5 (passado como float)
- *
- *   Retorno (PDF §5.4):
- *     AVAL_OK            (0)  – postado com comentário
- *     AVAL_OK_SEM_TXT    (1)  – postado sem comentário
- *     AVAL_ERRO_ID_PRATO (2)  – idPrato inexistente
- *     AVAL_ERRO_NOTA     (4)  – nota inválida
- *     AVAL_PARAM_INVALIDO(-1) – db==NULL, cpf<=0 ou idPrato<=0
- *     AVAL_BANCO_CHEIO   (-4) – capacidade esgotada
+ * Cria uma avaliacao e a insere no banco em memoria local.
  */
-int postAval(AppDados *db, long long int cpf, int idPrato,
-             const char *txt, float nota);
+int postAval(long long int cpf, int idPrato, const char *txt, float nota);
 
 /*
  * verAval
- *   Copia para resultado[] todas as avaliações do prato indicado.
- *   Operação de somente leitura — não modifica db.
- *
- *   Parâmetros:
- *     db            – banco em memória
- *     idPrato       – ID do prato a consultar (deve ser > 0)
- *     resultado     – array de Avaliacao alocado pelo chamador
- *     maxResultados – capacidade do array
- *
- *   Retorno (PDF §5.4):
- *     >= 0               – quantidade de avaliações copiadas
- *                          (0 = prato existe mas sem avaliações)
- *     AVAL_PARAM_INVALIDO(-1) – db==NULL, idPrato<=0 ou resultado==NULL
+ * Copia para resultado[] todas as avaliacoes do prato indicado.
  */
-int verAval(AppDados *db, int idPrato,
-            Avaliacao *resultado, int maxResultados);
+int verAval(int idPrato, Avaliacao *resultado, int maxResultados);
 
 /*
  * editAval
- *   Edita nota e/ou comentário de uma avaliação existente.
- *   Apenas o autor (CPF) pode editar a própria avaliação (§2.6).
- *   A confirmação do usuário deve ocorrer na camada de UI
- *   antes de chamar esta função.
- *
- *   Parâmetros:
- *     db       – banco em memória
- *     idAval   – ID da avaliação (deve ser > 0)
- *     cpf      – CPF do solicitante
- *     novaTxt  – novo comentário; NULL = mantém o anterior
- *     novaNota – nova nota [0,5]; valor < 0 = mantém a anterior
- *
- *   Retorno:
- *     AVAL_OK             (0)  – edição aplicada em memória
- *     AVAL_ERRO_EDICAO   (-2)  – avaliação não encontrada
- *     AVAL_ERRO_PERMISSAO(-3)  – CPF não é o autor
- *     AVAL_ERRO_NOTA      (4)  – nova nota inválida
- *     AVAL_PARAM_INVALIDO(-1)  – db==NULL, idAval<=0 ou cpf<=0
+ * Edita nota e/ou comentario de uma avaliacao existente.
  */
-int editAval(AppDados *db, int idAval, long long int cpf,
-             const char *novaTxt, float novaNota);
+int editAval(int idAval, long long int cpf, const char *novaTxt, float novaNota);
+
+/* ---------------------------------------------------------------
+ * imprimirAvaliacoesUsuario
+ * Varre o repositorio de avaliacoes e imprime no terminal todos
+ * os registros vinculados ao CPF fornecido.
+ *
+ * Pre-condicoes:  cpf > 0
+ * Pos-condicoes:  Retorna o total de avaliacoes impressas (>= 0)
+ * --------------------------------------------------------------- */
+int imprimirAvaliacoesUsuario(long long int cpf);
 
 #endif /* AVALIACAO_H */

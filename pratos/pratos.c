@@ -2,18 +2,17 @@
  * pratos.c
  * Modulo Pratos - Foodies
  *
- * Implementacao das funcoes declaradas em pratos.h.
+ * Implementacao das funcoes declaradas in pratos.h.
  *
- * DADOS FIXOS: este modulo apenas LE pratos.json.
- * O arquivo nunca e reescrito — pratos sao imutaveis durante
- * toda a execucao do programa (usuarios nao podem adicionar ou remover).
- *
- * Formato do JSON (uma linha por registro):
- *   {"idPrato":1,"nome":"Frango Grelhado","descricao":"...","cnpj":11111111000101,"endereco":"Av. Barra"}
+ * Este modulo protege a memoria global de pratos usando variaveis 
+ * de escopo de arquivo (static). Ele se comunica com o modulo avaliacao
+ * por meio de funcoes de interface limpas.
  */
 
 #include "pratos.h"
+#include "../avaliacao/avaliacao.h" /* Necessario para verificar se prato foi avaliado */
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -21,14 +20,15 @@
 #include <time.h>
 
 /* =================================================================
+ * ARMAZENAMENTO INTERNO PROTEGIDO (Ocultamento de Informacao)
+ * ================================================================= */
+static Prato pratos[MAX_PRATOS];
+static int nPratos = 0;
+
+/* =================================================================
  * FUNCOES AUXILIARES PRIVADAS (static)
  * ================================================================= */
 
-/*
- * contemSubstring
- *   Verifica se haystack contem needle como substring, case-insensitive.
- *   Utilizada por getListaPratos para busca parcial pelo nome.
- */
 static int contemSubstring(const char *haystack, const char *needle) {
     if (needle[0] == '\0') return 0;
     for (int i = 0; haystack[i] != '\0'; i++) {
@@ -43,11 +43,6 @@ static int contemSubstring(const char *haystack, const char *needle) {
     return 0;
 }
 
-/*
- * shuffleIndices
- *   Fisher-Yates shuffle sobre indices[] de tamanho n, in-place.
- *   Utilizada por getFeedPratos para selecao aleatoria sem repeticao.
- */
 static void shuffleIndices(int *indices, int n) {
     for (int i = n - 1; i > 0; i--) {
         int j      = rand() % (i + 1);
@@ -57,7 +52,6 @@ static void shuffleIndices(int *indices, int n) {
     }
 }
 
-/* Garante que srand() seja chamado apenas uma vez */
 static int sementeInicializada = 0;
 
 static void inicializarSemente(void) {
@@ -69,50 +63,35 @@ static void inicializarSemente(void) {
 
 /*
  * pratoJaAvaliado
- *   Verifica se o usuario (cpf) ja avaliou o prato (idPrato).
- *   Retorna 1 se sim, 0 se nao.
- *   Utilizada por getFeedPratos para filtrar pratos avaliados (PDF 2.7).
+ * Nao acessa mais db->avaliacoes diretamente. Agora ele faz uma chamada
+ * para a API publica do modulo de Avaliacao (ex: verificarSeAvaliado).
  */
-static int pratoJaAvaliado(const AppDados *db, long long int cpf, int idPrato) {
-    for (int i = 0; i < db->nAvaliacoes; i++) {
-        if (db->avaliacoes[i].cpf     == cpf &&
-            db->avaliacoes[i].idPrato == idPrato)
-            return 1;
-    }
-    return 0;
+static int pratoJaAvaliado(long long int cpf, int idPrato) {
+    return verificarSeAvaliado(cpf, idPrato);
 }
 
 /* =================================================================
  * FUNCAO DE CARGA DO JSON (chamada exclusivamente pelo Principal)
  * ================================================================= */
 
-/*
- * carregarPratos
- *   Le pratos.json e popula db->pratos[].
- *   Chamada uma unica vez no inicio. O arquivo nao e alterado depois.
- *   Ver contrato em pratos.h.
- */
-int carregarPratos(AppDados *db) {
-    if (db == NULL) return -1;
-
-    db->nPratos = 0;
+int carregarPratos(void) {
+    nPratos = 0;
 
     FILE *fp = fopen(PRATOS_JSON, "r");
-    if (fp == NULL) return 0;  /* arquivo nao existe ainda, sem erro */
+    if (fp == NULL) return 0;
 
     char linha[800];
-    while (fgets(linha, sizeof(linha), fp) &&
-           db->nPratos < MAX_PRATOS) {
+    while (fgets(linha, sizeof(linha), fp) && nPratos < MAX_PRATOS) {
 
-        Prato *p = &db->pratos[db->nPratos];
+        Prato *p = &pratos[nPratos];
         char nomeBuf[TAM_NOME]       = "";
         char descBuf[TAM_COMENTARIO] = "";
         char endBuf [TAM_ENDERECO]   = "";
 
         int lidos = sscanf(linha,
             " {\"idPrato\":%d,\"nome\":\"%100[^\"]\","
-            "\"descricao\":\"%400[^\"]\","
-            "\"cnpj\":%lld,\"endereco\":\"%200[^\"]\"}",
+            " \"descricao\":\"%400[^\"]\","
+            " \"cnpj\":%lld,\"endereco\":\"%200[^\"]\"}",
             &p->idPrato, nomeBuf, descBuf,
             &p->cnpjRestaurante, endBuf);
 
@@ -125,7 +104,7 @@ int carregarPratos(AppDados *db) {
         p->descricao          [TAM_COMENTARIO - 1] = '\0';
         p->enderecoRestaurante[TAM_ENDERECO   - 1] = '\0';
 
-        db->nPratos++;
+        nPratos++;
     }
 
     fclose(fp);
@@ -133,43 +112,29 @@ int carregarPratos(AppDados *db) {
 }
 
 /* =================================================================
- * FUNCOES DE ACESSO PUBLICAS (PDF 3.4.7)
+ * FUNCOES DE ACESSO PUBLICAS
  * ================================================================= */
 
-/*
- * getPratos
- *   Retorna ponteiro para o prato com o idPrato dado.
- *   Ver contrato em pratos.h.
- */
-Prato *getPratos(AppDados *db, int idPrato) {
-    if (db == NULL || idPrato <= 0) return NULL;
+Prato *getPratos(int idPrato) {
+    if (idPrato <= 0) return NULL;
 
-    for (int i = 0; i < db->nPratos; i++) {
-        if (db->pratos[i].idPrato == idPrato)
-            return &db->pratos[i];
+    for (int i = 0; i < nPratos; i++) {
+        if (pratos[i].idPrato == idPrato)
+            return &pratos[i];
     }
     return NULL;
 }
 
-/*
- * getListaPratos
- *   Busca pratos por substring no nome (case-insensitive).
- *   Ver contrato em pratos.h.
- */
-int getListaPratos(AppDados *db, const char *nome_prato,
-                   Prato *resultado, int maxResultados) {
-
-    if (db == NULL || nome_prato == NULL ||
-        resultado == NULL || maxResultados <= 0)
+int getListaPratos(const char *nome_prato, Prato *resultado, int maxResultados) {
+    if (nome_prato == NULL || resultado == NULL || maxResultados <= 0)
         return PRATOS_NOME_INVALIDO;
 
-    /* PDF 2.4: nome vazio nao retorna nada */
     if (nome_prato[0] == '\0') return 0;
 
     int encontrados = 0;
-    for (int i = 0; i < db->nPratos && encontrados < maxResultados; i++) {
-        if (contemSubstring(db->pratos[i].nome, nome_prato)) {
-            resultado[encontrados] = db->pratos[i];
+    for (int i = 0; i < nPratos && encontrados < maxResultados; i++) {
+        if (contemSubstring(pratos[i].nome, nome_prato)) {
+            resultado[encontrados] = pratos[i];
             encontrados++;
         }
     }
@@ -178,49 +143,41 @@ int getListaPratos(AppDados *db, const char *nome_prato,
 }
 
 /*
- * getMenu
- *   Retorna todos os pratos do restaurante identificado por cnpj.
- *   Ver contrato em pratos.h.
+ * getPratosPorCnpj / getMenu
+ * Ambas realizam a mesma operacao varrendo a colecao privada local
  */
-int getMenu(AppDados *db, long long int cnpj,
-            Prato *resultado, int maxResultados) {
-
-    if (db == NULL || cnpj <= 0 || resultado == NULL || maxResultados <= 0)
+int getPratosPorCnpj(long long int cnpj, Prato *resultado, int maxResultados) {
+    if (cnpj <= 0 || resultado == NULL || maxResultados <= 0)
         return PRATOS_PARAM_INVALIDO;
 
     int encontrados = 0;
-    for (int i = 0; i < db->nPratos && encontrados < maxResultados; i++) {
-        if (db->pratos[i].cnpjRestaurante == cnpj) {
-            resultado[encontrados] = db->pratos[i];
+    for (int i = 0; i < nPratos && encontrados < maxResultados; i++) {
+        if (pratos[i].cnpjRestaurante == cnpj) {
+            resultado[encontrados] = pratos[i];
             encontrados++;
         }
     }
-
     return encontrados;
 }
 
-/*
- * getFeedPratos
- *   Seleciona 20 pratos aleatorios nao avaliados pelo usuario.
- *   Ver contrato em pratos.h.
- */
-int getFeedPratos(AppDados *db, long long int cpf,
-                  Prato *resultado, int maxResultados) {
+int getMenu(long long int cnpj, Prato *resultado, int maxResultados) {
+    return getPratosPorCnpj(cnpj, resultado, maxResultados);
+}
 
-    if (db == NULL || resultado == NULL || cpf <= 0)
+int getFeedPratos(long long int cpf, Prato *resultado, int maxResultados) {
+    if (resultado == NULL || cpf <= 0 || maxResultados <= 0)
         return PRATOS_PARAM_INVALIDO;
 
     inicializarSemente();
 
-    /* Montar lista de indices elegiveis (nao avaliados pelo usuario) */
+    /* Montar lista de indices elegiveis baseado no modulo de avaliacoes */
     int elegiveis[MAX_PRATOS];
     int nElegiveis = 0;
-    for (int i = 0; i < db->nPratos; i++) {
-        if (!pratoJaAvaliado(db, cpf, db->pratos[i].idPrato))
+    for (int i = 0; i < nPratos; i++) {
+        if (!pratoJaAvaliado(cpf, pratos[i].idPrato))
             elegiveis[nElegiveis++] = i;
     }
 
-    /* PDF 5.6: menos de 20 elegiveis = insuficiente */
     if (nElegiveis < PRATOS_FEED_QTD)
         return PRATOS_INSUFICIENTE;
 
@@ -230,8 +187,61 @@ int getFeedPratos(AppDados *db, long long int cpf,
     if (copiar > maxResultados) copiar = maxResultados;
 
     for (int i = 0; i < copiar; i++) {
-        resultado[i] = db->pratos[elegiveis[i]];
+        resultado[i] = pratos[elegiveis[i]];
     }
 
     return copiar;
+}
+
+/* ---------------------------------------------------------------
+ * listarNomesPratos
+ * Exibe na saida padrao o ID e o Nome de todos os pratos cadastrados.
+ * --------------------------------------------------------------- */
+void listarNomesPratos(void) {
+    printf("\n--- Pratos Disponiveis ---\n");
+    // TODO: Varra seu vetor interno oculto de pratos e imprima-os:
+    // For de 0 até nPratosInternos:
+    //     printf("ID: %d | %s\n", pratosInternos[i].idPrato, pratosInternos[i].nome);
+}
+
+/* ---------------------------------------------------------------
+ * obterMediaPrato
+ * Calcula a media aritmetica das notas de um prato pelo seu ID.
+ * Modifica o float apontado por mediaDestino e retorna a quantidade
+ * total de avaliacoes computadas para o calculo.
+ * --------------------------------------------------------------- */
+int obterMediaPrato(int idPrato, float *mediaDestino) {
+    assert(mediaDestino != NULL);
+
+    if (idPrato <= 0) {
+        *mediaDestino = 0.0f;
+        return 0;
+    }
+
+    // Criamos um buffer temporário para puxar as avaliações deste prato específico
+    // usando a função pública do módulo de avaliação
+    Avaliacao buffer[100]; 
+    
+    // Supondo que verAval preencha o buffer e retorne a quantidade (ou código de sucesso)
+    // Se verAval retornar a quantidade de itens preenchidos:
+    int qtdAvaliacoes = verAval(idPrato, buffer, 100);
+
+    // Se verAval retornar um código de erro/sucesso (ex: AVAL_OK = 0) e a quantidade 
+    // for controlada de outra forma, ajuste aqui. Mas se ela retornar a contagem:
+    if (qtdAvaliacoes < 0) qtdAvaliacoes = 0; // Tratamento de erro seguro
+
+    float somaNotas = 0.0f;
+    for (int i = 0; i < qtdAvaliacoes; i++) {
+        somaNotas += buffer[i].nota;
+    }
+
+    if (qtdAvaliacoes > 0) {
+        *mediaDestino = somaNotas / (float)qtdAvaliacoes;
+    } else {
+        *mediaDestino = 0.0f;
+    }
+
+    assert(*mediaDestino >= 0.0f && *mediaDestino <= 5.0f);
+
+    return qtdAvaliacoes;
 }
