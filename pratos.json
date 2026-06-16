@@ -1,0 +1,50 @@
+{"idPrato":1,"nome":"Peixe Frito","descricao":"Peixe fresco frito na hora","cnpj":11111111000101,"endereco":"Av. Niemeyer, 121"}
+{"idPrato":2,"nome":"Camarao Grelhado","descricao":"Camarao grelhado com alho e azeite","cnpj":11111111000101,"endereco":"Av. Niemeyer, 121"}
+{"idPrato":3,"nome":"Traira Assada","descricao":"Traira assada com ervas finas","cnpj":11111111000102,"endereco":"Rua Laurinda Santos Lobo, 36"}
+{"idPrato":4,"nome":"Caldeirada","descricao":"Caldeirada de frutos do mar","cnpj":11111111000102,"endereco":"Rua Laurinda Santos Lobo, 36"}
+{"idPrato":5,"nome":"Soba Tradicional","descricao":"Macarrao japones com caldo dashi","cnpj":22222222000103,"endereco":"R. Bambina, 124"}
+{"idPrato":6,"nome":"Gyoza","descricao":"Pastel japones grelhado recheado","cnpj":22222222000103,"endereco":"R. Bambina, 124"}
+{"idPrato":7,"nome":"Frango ao Molho","descricao":"Frango caipira ao molho pardo","cnpj":33333333000104,"endereco":"R. Aprazivel, 62"}
+{"idPrato":8,"nome":"Feijao Tropeiro","descricao":"Feijao com farinha e torresmo","cnpj":33333333000104,"endereco":"R. Aprazivel, 62"}
+{"idPrato":9,"nome":"Bolinho de Bacalhau","descricao":"Bolinhos crocantes de bacalhau","cnpj":44444444000105,"endereco":"R. Paschoal Carlos Magno, 99"}
+{"idPrato":10,"nome":"Porcao de Frango","descricao":"Frango a passarinho com farofa","cnpj":44444444000105,"endereco":"R. Paschoal Carlos Magno, 99"}
+{"idPrato":11,"nome":"Picanha","descricao":"Picanha nobre grelhada no carvao","cnpj":55555555000106,"endereco":"Av. das Americas, 777"}
+{"idPrato":12,"nome":"Costela","descricao":"Costela bovina assada lentamente","cnpj":55555555000106,"endereco":"Av. das Americas, 777"}
+{"idPrato":13,"nome":"Porcao de Calabresa","descricao":"Calabresa acebolada com pao","cnpj":66666666000107,"endereco":"R. Voluntarios da Patria, 10"}
+{"idPrato":14,"nome":"Bolinho de Mandioca","descricao":"Bolinho frito de mandioca com queijo","cnpj":66666666000107,"endereco":"R. Voluntarios da Patria, 10"}
+{"idPrato":15,"nome":"Bloomin Onion","descricao":"Cebola empanada com molho especial","cnpj":77777777000108,"endereco":"Shopping Downtown Rio"}
+{"idPrato":16,"nome":"Baby Back Ribs","descricao":"Costelinha suina ao molho barbecue","cnpj":77777777000108,"endereco":"Shopping Downtown Rio"}
+{"idPrato":17,"nome":"Moqueca de Peixe","descricao":"Moqueca baiana com azeite de dende","cnpj":11111111000101,"endereco":"Av. Niemeyer, 121"}
+{"idPrato":18,"nome":"Temaki de Salmao","descricao":"Cone de alga com salmao e arroz","cnpj":22222222000103,"endereco":"R. Bambina, 124"}
+{"idPrato":19,"nome":"Rabada","descricao":"Rabada com agriao e polenta","cnpj":33333333000104,"endereco":"R. Aprazivel, 62"}
+{"idPrato":20,"nome":"Coxinha de Frango","descricao":"Coxinha artesanal de frango","cnpj":44444444000105,"endereco":"R. Paschoal Carlos Magno, 99"}
+{"idPrato":21,"nome":"Fraldinha","descricao":"Fraldinha grelhada com chimichurri","cnpj":55555555000106,"endereco":"Av. das Americas, 777"}
+{"idPrato":22,"nome":"Torresmo","descricao":"Torresmo crocante frito na hora","cnpj":66666666000107,"endereco":"R. Voluntarios da Patria, 10"}
+{"idPrato":23,"nome":"Steak de Frango","descricao":"Frango grelhado com batatas fritas","cnpj":77777777000108,"endereco":"Shopping Downtown Rio"}
+{"idPrato":24,"nome":"Atum Selado","descricao":"Atum selado com gergelim e shoyu","cnpj":11111111000102,"endereco":"Rua Laurinda Santos Lobo, 36"}
+{"idPrato":25,"nome":"Feijoada Completa","descricao":"Feijoada completa premium da casa","cnpj":33333333000104,"endereco":"R. Aprazivel, 62"}
+{"idPrato":26,"nome":"Soba Tradicional","descricao":"Macarrao com caldo artesanal da filial","cnpj":22222222000122,"endereco":"R. Conde de Bonfim, 340"}
+{"idPrato":27,"nome":"Gyoza","descricao":"Porcao com 6 gyozas suinos grelhados","cnpj":22222222000122,"endereco":"R. Conde de Bonfim, 340"}
+{"idPrato":28,"nome":"Feijoada Completa","descricao":"Famosa feijoada de boteco servida na lapa","cnpj":44444444000155,"endereco":"Av. Mem de Sa, 42"}
+{"idPrato":29,"nome":"Bolinho de Bacalhau","descricao":"Porcao tradicional de boteco carioca","cnpj":44444444000155,"endereco":"Av. Mem de Sa, 42"}
+{"idPrato":30,"nome":"Picanha","descricao":"Picanha premium fatiada no rodizio da Z. Sul","cnpj":55555555000166,"endereco":"Av. Reporter Nestor Moreira, 12"}
+{"idPrato":31,"nome":"Lasanha Bolonhesa","descricao":"Massa artesanal com molho de tomates frescos","cnpj":88888888000109,"endereco":"R. Real Grandeza, 150"}
+{"idPrato":32,"nome":"Hamburguer Artesanal","descricao":"Blend de 180g com queijo cheddar e molho TT","cnpj":99999999000110,"endereco":"Av. Atlantica, 1800"}
+{"idPrato":33,"nome":"Batata Frita Canoa","descricao":"Porcao de batatas fritas rusticas temperadas","cnpj":99999999000110,"endereco":"Av. Atlantica, 1800"}
+{"idPrato":34,"nome":"Hamburguer Artesanal","descricao":"Blend de 180g servido na filial Leblon","cnpj":99999999000120,"endereco":"Av. Ataulfo de Paiva, 500"}
+{"idPrato":35,"nome":"Milkshake de Doce de Leite","descricao":"Milkshake cremoso batido na hora","cnpj":99999999000120,"endereco":"Av. Ataulfo de Paiva, 500"}
+{"idPrato":36,"nome":"Executivo de Frango","descricao":"Arroz, feijao, frango grelhado e batata frita","cnpj":12345678000111,"endereco":"R. do Ouvidor, 105"}
+{"idPrato":37,"nome":"Executivo de Carne","descricao":"Arroz, feijao, bife de alcatra e farofa","cnpj":12345678000111,"endereco":"R. do Ouvidor, 105"}
+{"idPrato":38,"nome":"Pudim","descricao":"Fatia de pudim de leite condensado liso","cnpj":12345678000111,"endereco":"R. do Ouvidor, 105"}
+{"idPrato":39,"nome":"Executivo de Frango","descricao":"Prato feito com sobrecoxa assada na Lapa","cnpj":12345678000122,"endereco":"R. Riachuelo, 85"}
+{"idPrato":40,"nome":"Executivo de Peixe","descricao":"File de merluza empanado com pure de batata","cnpj":12345678000122,"endereco":"R. Riachuelo, 85"}
+{"idPrato":41,"nome":"Pudim","descricao":"Sobremesa caseira com calda de caramelo","cnpj":12345678000122,"endereco":"R. Riachuelo, 85"}
+{"idPrato":42,"nome":"Pizza de Calabreza","descricao":"Molho de tomate, mucarela, calabresa e cebola","cnpj":87654321000133,"endereco":"R. Conde de Bonfim, 200"}
+{"idPrato":43,"nome":"Pizza Quatro Queijos","descricao":"Mucarela, provolone, gorgonzola e catupiry","cnpj":87654321000133,"endereco":"R. Conde de Bonfim, 200"}
+{"idPrato":44,"nome":"Carne de Sol com Aipim","descricao":"Carne de sol na chapa com aipim frito","cnpj":11223344000144,"endereco":"Feira de Sao Cristovao, Pavilhao 4"}
+{"idPrato":45,"nome":"Baiao de Dois","descricao":"Arroz, feijao de corda, queijo coalho e carne","cnpj":11223344000144,"endereco":"Feira de Sao Cristovao, Pavilhao 4"}
+{"idPrato":46,"nome":"Combo Sushi 16 Pecas","descricao":"Combinado de sushis e sashimis variados","cnpj":55667788000155,"endereco":"R. Nelson Mandela, 100"}
+{"idPrato":47,"nome":"Hot Filadelfia","descricao":"Sushi frito com salmao e cream cheese","cnpj":55667788000155,"endereco":"R. Nelson Mandela, 100"}
+{"idPrato":48,"nome":"Torta de Limao","descricao":"Massa crocante com creme de limao e merengue","cnpj":99887766000166,"endereco":"Shopping Tijuca, Loja 20B"}
+{"idPrato":49,"nome":"Coxinha de Frango","descricao":"Salgado frito tamanho grande recheado","cnpj":99887766000166,"endereco":"Shopping Tijuca, Loja 20B"}
+{"idPrato":50,"nome":"Buffet de Churrasco","descricao":"Acesso completo às carnes nobres de Botafogo","cnpj":55555555000166,"endereco":"Av. Reporter Nestor Moreira, 12"}

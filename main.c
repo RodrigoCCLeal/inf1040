@@ -3,17 +3,22 @@
  * Foodies - Aplicacao principal
  *
  * Fluxo de vida:
- * 1. iniciarApp()  -> aloca banco, carrega perfis.json e avaliacoes.json
- * 2. Loop do menu principal
- * 3. encerrarApp() -> salva perfis.json e avaliacoes.json, libera memoria
+ *   1. iniciarApp()  -> aloca banco, carrega todos os JSONs:
+ *                       perfis.json, avaliacoes.json,
+ *                       restaurantes.json (fixo), pratos.json (fixo)
+ *   2. Loop do menu principal
+ *   3. encerrarApp() -> salva perfis.json e avaliacoes.json, libera memoria
+ *                       (restaurantes.json e pratos.json nao sao alterados)
  *
  * Modulos usados:
- * principal -> ciclo de vida e persistencia de avaliacoes
- * perfil    -> login, cadastro e consulta de usuarios
- * postar    -> acesso a pagina de postagem
- * avaliacao -> criar, ver e editar avaliacoes
- * buscar    -> pesquisar pratos e restaurantes
- * feed      -> recomendacoes aleatorias
+ *   principal   -> ciclo de vida e persistencia
+ *   perfil      -> login, cadastro e consulta de usuarios
+ *   postar      -> acesso a pagina de postagem
+ *   avaliacao   -> criar, ver e editar avaliacoes
+ *   buscar      -> valida acesso a tela de busca
+ *   feed        -> valida acesso a tela de feed
+ *   pratos      -> busca e feed de pratos (dados fixos do JSON)
+ *   restaurante -> busca e feed de restaurantes (dados fixos do JSON)
  */
 
 #include <stdio.h>
@@ -27,6 +32,8 @@
 #include "avaliacao/avaliacao.h"
 #include "buscar/buscar.h"
 #include "feed/feed.h"
+#include "pratos/pratos.h"
+#include "restaurante/restaurante.h"
 
 /* =================================================================
  * PONTEIRO GLOBAL PARA O BANCO (necessario para o handler de SIGINT)
@@ -40,13 +47,13 @@ static AppDados *g_db = NULL;
 
 /*
  * tratarSIGINT
- * Handler registrado para SIGINT (Ctrl+C).
- * Garante que os dados em memoria sejam persistidos nos JSONs mesmo
- * quando o usuario encerra o programa de forma abrupta, respeitando
- * a regra de que os arquivos so sao escritos no momento do encerramento.
+ *   Handler registrado para SIGINT (Ctrl+C).
+ *   Garante que os dados em memoria sejam persistidos nos JSONs mesmo
+ *   quando o usuario encerra o programa de forma abrupta, respeitando
+ *   a regra de que os arquivos so sao escritos no momento do encerramento.
  */
 static void tratarSIGINT(int sig) {
-    (void)sig;  /* parametro exigido pela assinatura, mas nao usado */
+    (void)sig;
     printf("\nPrograma interrompido. Salvando dados...\n");
     if (g_db != NULL) {
         encerrarApp(g_db);
@@ -56,88 +63,13 @@ static void tratarSIGINT(int sig) {
 }
 
 /* =================================================================
- * DADOS INICIAIS (pratos e restaurantes fixos no sistema)
- * O projeto especifica que usuarios nao podem editar pratos ou
- * restaurantes, entao eles sao carregados aqui como dados fixos.
- * Em producao viriam de um JSON proprio; aqui populamos direto.
- * ================================================================= */
-
-/*
- * popularDadosFixos
- * Insere os restaurantes e pratos pre-cadastrados no sistema.
- * Chamada uma vez por iniciarApp antes do menu principal.
- * Nao sobrescreve se ja houver pratos (segunda execucao).
- */
-static void popularDadosFixos(AppDados *db) {
-    if (db->nPratos > 0) return;  /* ja populado em execucao anterior */
-
-    /* --- Restaurantes --- */
-    struct { long long int cnpj; const char *nome; const char *end; } rests[] = {
-        { 11111111000101LL, "Toca da Traira - Barra",     "Av. Niemeyer, 121"    },
-        { 11111111000102LL, "Toca da Traira - Freguesia", "Rua Laurinda, 36"     },
-        { 22222222000103LL, "Soba",                       "R. Bambina, 124"      },
-        { 33333333000104LL, "Aprazivel",                  "R. Aprazivel, 62"     },
-        { 44444444000105LL, "Bar do Mineiro",             "R. Paschoal, 99"      },
-        { 55555555000106LL, "Churrascaria Fogo de Chao",  "Av. das Americas, 777"},
-        { 66666666000107LL, "Boteco do Brasil",           "R. Voluntarios, 10"   },
-        { 77777777000108LL, "Outback Barra",              "Shopping Downtown"    },
-    };
-    int nR = (int)(sizeof(rests) / sizeof(rests[0]));
-    for (int i = 0; i < nR && db->nRestaurantes < MAX_RESTAURANTES; i++) {
-        db->restaurantes[db->nRestaurantes].cnpj = rests[i].cnpj;
-        strncpy(db->restaurantes[db->nRestaurantes].nome, rests[i].nome,
-                TAM_NOME - 1);
-        strncpy(db->restaurantes[db->nRestaurantes].endereco, rests[i].end,
-                TAM_ENDERECO - 1);
-        db->nRestaurantes++;
-    }
-
-    /* --- Pratos --- */
-    struct { long long int cnpj; const char *nome; const char *desc; } pratos[] = {
-        { 11111111000101LL, "Peixe Frito",         "Peixe fresco frito na hora"          },
-        { 11111111000101LL, "Camarao Grelhado",    "Camarao grelhado com alho"            },
-        { 11111111000102LL, "Traira Assada",       "Traira assada com ervas"              },
-        { 11111111000102LL, "Caldeirada",          "Caldeirada de frutos do mar"          },
-        { 22222222000103LL, "Soba Tradicional",    "Macarrao japones com caldo"           },
-        { 22222222000103LL, "Gyoza",               "Pastel japones grelhado"              },
-        { 33333333000104LL, "Frango ao Molho",     "Frango caipira ao molho pardo"        },
-        { 33333333000104LL, "Feijao Tropeiro",     "Feijao com farinha e torresmo"        },
-        { 44444444000105LL, "Bolinho de Bacalhau", "Bolinhos crocantes de bacalhau"       },
-        { 44444444000105LL, "Porcao de Frango",    "Frango a passarinho com farofa"       },
-        { 55555555000106LL, "Picanha",             "Picanha grelhada no carvao"           },
-        { 55555555000106LL, "Costela",             "Costela bovina assada lentamente"     },
-        { 66666666000107LL, "Porcao de Calabresa", "Calabresa acebolada com pao"          },
-        { 66666666000107LL, "Bolinho de Mandioca", "Bolinho frito de mandioca com queijo" },
-        { 77777777000108LL, "Bloomin Onion",       "Cebola empanada com molho especial"  },
-        { 77777777000108LL, "Baby Back Ribs",      "Costelinha suina ao molho barbecue"   },
-        { 11111111000101LL, "Moqueca de Peixe",    "Moqueca baiana com dendê"             },
-        { 22222222000103LL, "Temaki",              "Cone de alga com salmao e arroz"      },
-        { 33333333000104LL, "Rabada",              "Rabada com agriao"                    },
-        { 44444444000105LL, "Coxinha de Frango",   "Coxinha artesanal de frango"          },
-        { 55555555000106LL, "Fraldinha",           "Fraldinha grelhada com chimichurri"   },
-        { 66666666000107LL, "Torresmo",            "Torresmo crocante frito"              },
-        { 77777777000108LL, "Steak de Frango",     "Frango grelhado com batatas"          },
-        { 11111111000102LL, "Atum Selado",         "Atum selado com gergelim"             },
-        { 33333333000104LL, "Feijoada",            "Feijoada completa aos sabados"        },
-    };
-    int nP = (int)(sizeof(pratos) / sizeof(pratos[0]));
-    for (int i = 0; i < nP && db->nPratos < MAX_PRATOS; i++) {
-        db->pratos[db->nPratos].idPrato         = db->proximoIdPrato++;
-        db->pratos[db->nPratos].cnpjRestaurante = pratos[i].cnpj;
-        strncpy(db->pratos[db->nPratos].nome,     pratos[i].nome, TAM_NOME     - 1);
-        strncpy(db->pratos[db->nPratos].descricao, pratos[i].desc, TAM_COMENTARIO - 1);
-        db->nPratos++;
-    }
-}
-
-/* =================================================================
  * HELPERS DE INPUT
  * ================================================================= */
 
 /*
  * lerLinha
- * Le uma linha do stdin e remove o '\n' do final.
- * Retorna 0 em sucesso, -1 se nada foi lido.
+ *   Le uma linha do stdin e remove o '\n' do final.
+ *   Retorna 0 em sucesso, -1 se nada foi lido.
  */
 static int lerLinha(char *buf, int tam) {
     if (fgets(buf, tam, stdin) == NULL) return -1;
@@ -147,7 +79,7 @@ static int lerLinha(char *buf, int tam) {
 
 /*
  * lerInt
- * Le um inteiro do stdin. Retorna o valor ou -1 em erro.
+ *   Le um inteiro do stdin. Retorna o valor ou -1 em erro.
  */
 static int lerInt(void) {
     char buf[32];
@@ -157,7 +89,7 @@ static int lerInt(void) {
 
 /*
  * lerCPF
- * Le um CPF (11 digitos) do stdin.
+ *   Le um CPF (11 digitos) do stdin.
  */
 static long long int lerCPF(void) {
     char buf[32];
@@ -171,8 +103,8 @@ static long long int lerCPF(void) {
 
 /* -----------------------------------------------------------------
  * telaPerfil
- * Tela de login e cadastro. Retorna quando o usuario entra
- * com sucesso (db->cpfLogado fica preenchido).
+ *   Tela de login e cadastro. Retorna quando o usuario entra
+ *   com sucesso (db->cpfLogado fica preenchido).
  * ----------------------------------------------------------------- */
 static void telaPerfil(AppDados *db) {
     int opcao;
@@ -185,7 +117,6 @@ static void telaPerfil(AppDados *db) {
         opcao = lerInt();
 
         if (opcao == 1) {
-            /* --- Login --- */
             long long int cpf;
             char senha[TAM_SENHA];
 
@@ -204,7 +135,6 @@ static void telaPerfil(AppDados *db) {
             }
 
         } else if (opcao == 2) {
-            /* --- Cadastro --- */
             long long int cpf;
             char nome[TAM_NOME];
             char senha[TAM_SENHA];
@@ -230,6 +160,7 @@ static void telaPerfil(AppDados *db) {
         } else if (opcao == 0) {
             printf("Encerrando o programa...\n");
             encerrarApp(db);
+            g_db = NULL;
             printf("Dados salvos. Ate logo!\n");
             exit(0);
         } else {
@@ -241,7 +172,7 @@ static void telaPerfil(AppDados *db) {
 
 /* -----------------------------------------------------------------
  * telaPostar
- * Permite ao usuario logado postar uma avaliacao de um prato.
+ *   Permite ao usuario logado postar uma avaliacao de um prato.
  * ----------------------------------------------------------------- */
 static void telaPostar(AppDados *db) {
     if (enterPostar(db, db->cpfLogado) != POSTAR_OK) {
@@ -269,8 +200,7 @@ static void telaPostar(AppDados *db) {
 
     /* Confirmacao antes de postar (PDF 2.5) */
     printf("Confirmar avaliacao? (1=Sim / 0=Nao): ");
-    int confirma = lerInt();
-    if (confirma != 1) {
+    if (lerInt() != 1) {
         printf("Avaliacao cancelada.\n");
         return;
     }
@@ -291,7 +221,9 @@ static void telaPostar(AppDados *db) {
 
 /* -----------------------------------------------------------------
  * telaBuscar
- * Permite buscar pratos e restaurantes pelo nome.
+ *   Permite buscar pratos e restaurantes pelo nome.
+ *   getListaPratos e getListaRest pertencem aos modulos Pratos e
+ *   Restaurante, que sao os donos desses dados.
  * ----------------------------------------------------------------- */
 static void telaBuscar(AppDados *db) {
     if (enterBuscar(db, db->cpfLogado) != BUSCAR_OK) {
@@ -312,8 +244,8 @@ static void telaBuscar(AppDados *db) {
         printf("Nome do prato: ");
         lerLinha(nome, sizeof(nome));
 
-        Prato resultados[BUSCAR_MAX_RESULTADOS];
-        int qtd = getListaPratos(db, nome, resultados, BUSCAR_MAX_RESULTADOS);
+        Prato resultados[100];
+        int qtd = getListaPratos(db, nome, resultados, 100);
 
         if (qtd <= 0) {
             printf("Nenhum prato encontrado.\n");
@@ -344,8 +276,8 @@ static void telaBuscar(AppDados *db) {
         printf("Nome do restaurante: ");
         lerLinha(nome, sizeof(nome));
 
-        Restaurante resultados[BUSCAR_MAX_RESULTADOS];
-        int qtd = getListaRest(db, nome, resultados, BUSCAR_MAX_RESULTADOS);
+        Restaurante resultados[100];
+        int qtd = getListaRest(db, nome, resultados, 100);
 
         if (qtd <= 0) {
             printf("Nenhum restaurante encontrado.\n");
@@ -362,7 +294,9 @@ static void telaBuscar(AppDados *db) {
 
 /* -----------------------------------------------------------------
  * telaFeed
- * Mostra pratos e restaurantes aleatorios ao usuario logado.
+ *   Mostra pratos e restaurantes aleatorios ao usuario logado.
+ *   getFeedPratos e getFeedRest pertencem aos modulos Pratos e
+ *   Restaurante, que sao os donos desses dados.
  * ----------------------------------------------------------------- */
 static void telaFeed(AppDados *db) {
     if (enterFeed(db, db->cpfLogado) != FEED_OK) {
@@ -379,14 +313,14 @@ static void telaFeed(AppDados *db) {
     opcao = lerInt();
 
     if (opcao == 1) {
-        Prato pratos[FEED_QTD_PRATOS];
-        int qtd = getFeedPratos(db, db->cpfLogado, pratos, FEED_QTD_PRATOS);
+        Prato pratos[PRATOS_FEED_QTD];
+        int qtd = getFeedPratos(db, db->cpfLogado, pratos, PRATOS_FEED_QTD);
 
-        if (qtd == FEED_INSUFICIENTE) {
+        if (qtd == PRATOS_INSUFICIENTE) {
             printf("Nao ha pratos suficientes para o feed (minimo 20).\n");
             return;
         }
-        if (qtd == FEED_ERRO_PARAM) {
+        if (qtd == PRATOS_PARAM_INVALIDO) {
             printf("Erro de parametro.\n");
             return;
         }
@@ -399,10 +333,10 @@ static void telaFeed(AppDados *db) {
         }
 
     } else if (opcao == 2) {
-        Restaurante rests[FEED_QTD_RESTAURANTES];
-        int qtd = getFeedRest(db, rests, FEED_QTD_RESTAURANTES);
+        Restaurante rests[REST_FEED_QTD];
+        int qtd = getFeedRest(db, rests, REST_FEED_QTD);
 
-        if (qtd == FEED_INSUFICIENTE) {
+        if (qtd == REST_INSUFICIENTE) {
             printf("Nao ha restaurantes suficientes para o feed (minimo 6).\n");
             return;
         }
@@ -415,7 +349,7 @@ static void telaFeed(AppDados *db) {
 
 /* -----------------------------------------------------------------
  * telaAvaliacao
- * Permite ao usuario ver e editar suas proprias avaliacoes.
+ *   Permite ao usuario ver e editar suas proprias avaliacoes.
  * ----------------------------------------------------------------- */
 static void telaAvaliacao(AppDados *db) {
     if (verificaLogin(db, db->cpfLogado) != LOGIN_OK) {
@@ -425,19 +359,13 @@ static void telaAvaliacao(AppDados *db) {
 
     printf("\n=== MINHAS AVALIACOES ===\n");
 
-    /* Listar todas as avaliacoes do usuario logado */
     int encontradas = 0;
     for (int i = 0; i < db->nAvaliacoes; i++) {
         if (db->avaliacoes[i].cpf != db->cpfLogado) continue;
 
-        /* Achar nome do prato */
-        char nomePrato[TAM_NOME] = "Prato desconhecido";
-        for (int j = 0; j < db->nPratos; j++) {
-            if (db->pratos[j].idPrato == db->avaliacoes[i].idPrato) {
-                strncpy(nomePrato, db->pratos[j].nome, TAM_NOME - 1);
-                break;
-            }
-        }
+        /* Buscar nome do prato via modulo Pratos */
+        Prato *p = getPratos(db, db->avaliacoes[i].idPrato);
+        const char *nomePrato = (p != NULL) ? p->nome : "Prato desconhecido";
 
         printf("  [ID:%d] %s - Nota: %.0f",
                db->avaliacoes[i].idAval,
@@ -497,13 +425,12 @@ static void telaAvaliacao(AppDados *db) {
 
 /*
  * menuPrincipal
- * Loop central do programa. So acessivel apos login.
- * Navega para cada modulo conforme escolha do usuario.
+ *   Loop central do programa. So acessivel apos login.
+ *   Navega para cada modulo conforme escolha do usuario.
  */
 static void menuPrincipal(AppDados *db) {
     int opcao;
     do {
-        /* Mostrar usuario logado */
         Usuario *u = getUsuario(db, db->cpfLogado);
         printf("\n=== FOODIES | Logado: %s ===\n",
                u ? u->nome : "Desconhecido");
@@ -524,12 +451,13 @@ static void menuPrincipal(AppDados *db) {
             case 5:
                 printf("Saindo da conta...\n");
                 db->cpfLogado = 0;
-                return;  /* volta para telaPerfil */
+                return;
             case 0:
                 printf("Encerrando o programa...\n");
-                encerrarApp(db);                  /* MODIFICADO: Salva dados antes de cair fora */
+                encerrarApp(db);
+                g_db = NULL;
                 printf("Dados salvos. Ate logo!\n");
-                exit(0);                          /* MODIFICADO: Termina o processo imediatamente */
+                exit(0);
             default:
                 printf("Opcao invalida.\n");
         }
@@ -546,8 +474,12 @@ int main(void) {
     printf("=================================\n");
 
     /*
-     * 1. Iniciar: aloca banco, carrega perfis.json e avaliacoes.json.
-     * Se os arquivos nao existirem, comeca com banco vazio.
+     * 1. Iniciar: aloca banco e carrega todos os JSONs.
+     *    iniciarApp() chama internamente:
+     *      carregarPerfis(db)       -> perfis.json
+     *      carregarRestaurantes(db) -> restaurantes.json (fixo, nao alterado)
+     *      carregarPratos(db)       -> pratos.json (fixo, nao alterado)
+     *      carregarAvaliacoes(db)   -> avaliacoes.json
      */
     AppDados *db = iniciarApp();
     if (db == NULL) {
@@ -556,37 +488,31 @@ int main(void) {
     }
 
     /*
-     * 1b. Registrar handler para SIGINT (Ctrl+C).
-     * Feito apos iniciarApp() para que g_db ja aponte para um banco valido
-     * antes de qualquer possivel interrupcao. O handler chama encerrarApp(),
-     * que e o mesmo caminho de saida normal, garantindo consistencia dos JSONs.
+     * 2. Registrar handler para SIGINT (Ctrl+C).
+     *    Feito apos iniciarApp() para que g_db aponte para um banco valido.
+     *    O handler chama encerrarApp(), garantindo que os dados sejam
+     *    salvos mesmo em caso de interrupcao abrupta.
      */
     g_db = db;
     signal(SIGINT, tratarSIGINT);
 
     /*
-     * 2. Popular pratos e restaurantes fixos do sistema.
-     * Nao faz nada se ja existirem (segunda execucao).
-     */
-    popularDadosFixos(db);
-
-    /*
      * 3. Loop: tela de perfil (login/cadastro) -> menu principal.
-     * Repete quando o usuario sai da conta sem encerrar.
+     *    Repete quando o usuario sai da conta sem encerrar o programa.
      */
     while (1) {
-        telaPerfil(db);      /* bloqueia ate login bem-sucedido */
-        menuPrincipal(db);   /* retorna quando sai da conta     */
+        telaPerfil(db);
+        menuPrincipal(db);
 
-        /* Se cpfLogado ainda for 0 apos menuPrincipal, opcao 0 foi escolhida */
         if (db->cpfLogado == 0) break;
     }
 
     /*
-     * 4. Encerrar de segurança: limpa memória caso saia naturalmente por algum motivo.
+     * 4. Encerrar: salva perfis.json e avaliacoes.json e libera memoria.
+     *    Caminho de saida natural (usuario deslogou sem escolher encerrar).
      */
     encerrarApp(db);
-
+    g_db = NULL;
     printf("Dados salvos. Ate logo!\n");
     return 0;
 }

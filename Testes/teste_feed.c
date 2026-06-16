@@ -2,8 +2,16 @@
  * teste_feed.c
  * Testes unitarios - Modulo Feed (Foodies)
  *
- * Cobre: enterFeed, getFeedPratos, getFeedRest
- * Casos de teste conforme PDF 5.3, 5.5, 5.6
+ * Cobre: enterFeed
+ * Casos de teste conforme PDF 5.3
+ *
+ * Os dados de pratos e restaurantes sao carregados dos JSONs fixos
+ * (pratos.json e restaurantes.json) via carregarPratos e
+ * carregarRestaurantes, exatamente como acontece na execucao real.
+ * Nenhum dado e inserido manualmente no AppDados.
+ *
+ * As funcoes getFeedPratos e getFeedRest pertencem aos modulos
+ * Pratos e Restaurante respectivamente e sao testadas la.
  */
 
 #include <stdio.h>
@@ -12,10 +20,9 @@
 #include <assert.h>
 
 #include "../feed/feed.h"
+#include "../pratos/pratos.h"
+#include "../restaurante/restaurante.h"
 
-/* ---------------------------------------------------------------
- * CONTADORES DE TESTE
- * --------------------------------------------------------------- */
 static int totalTestes  = 0;
 static int testesPassou = 0;
 
@@ -28,62 +35,39 @@ static int testesPassou = 0;
         printf("  [OK]\n");                     \
     } while (0)
 
-/* ---------------------------------------------------------------
- * HELPERS
- * --------------------------------------------------------------- */
-
 /*
- * alocarBanco
- *   Aloca AppDados no heap para evitar stack overflow no Windows.
+ * alocarECarregar
+ *   Aloca AppDados no heap e carrega os JSONs fixos de pratos e
+ *   restaurantes, simulando o comportamento real do iniciarApp().
  */
-static AppDados *alocarBanco(void) {
+static AppDados *alocarECarregar(void) {
     AppDados *db = malloc(sizeof(AppDados));
     assert(db != NULL);
     memset(db, 0, sizeof(AppDados));
     db->proximoIdPrato = 1;
     db->proximoIdAval  = 1;
     db->cpfLogado      = 0;
+
+    /* Carregar dados fixos dos JSONs, como faz o Principal */
+    carregarRestaurantes(db);
+    carregarPratos(db);
+
     return db;
 }
-
-/*
- * popularGrande
- *   Insere 25 pratos e 8 restaurantes - suficiente para o feed.
- */
-static void popularGrande(AppDados *db) {
-    for (int i = 0; i < 8; i++) {
-        db->restaurantes[i].cnpj = 10000000000100LL + i;
-        snprintf(db->restaurantes[i].nome,     TAM_NOME,
-                 "Restaurante %d", i + 1);
-        snprintf(db->restaurantes[i].endereco, TAM_ENDERECO,
-                 "Rua %d, %d", i + 1, (i + 1) * 10);
-    }
-    db->nRestaurantes = 8;
-
-    for (int i = 0; i < 25; i++) {
-        db->pratos[i].idPrato = db->proximoIdPrato++;
-        snprintf(db->pratos[i].nome, TAM_NOME, "Prato %d", i + 1);
-        db->pratos[i].cnpjRestaurante = db->restaurantes[i % 8].cnpj;
-    }
-    db->nPratos = 25;
-}
-
 
 /* ---------------------------------------------------------------
  * SUITE 1 - enterFeed
  * Ref. PDF 5.3
  *
  * Retornos esperados:
- *   0 - Entrou na pagina Feed   (FEED_OK)
+ *   0 - Entrou na pagina Feed     (FEED_OK)
  *   1 - CPF invalido / nao logado (FEED_CPF_INVALIDO)
- *   2 - Parametro invalido      (FEED_PARAM_INVALIDO)
+ *   2 - Parametro invalido        (FEED_PARAM_INVALIDO)
  * --------------------------------------------------------------- */
-
 static void suite_enterFeed(void) {
     printf("\n=== SUITE enterFeed ===\n");
 
-    AppDados *db = alocarBanco();
-    popularGrande(db);
+    AppDados *db = alocarECarregar();
 
     /* C1 - CPF valido e logado
      * Retorno esperado: FEED_OK (0) */
@@ -127,12 +111,89 @@ static void suite_enterFeed(void) {
 }
 
 /* ---------------------------------------------------------------
+ * SUITE 2 - integracao com dados reais dos JSONs
+ * Verifica que getFeedPratos e getFeedRest dos modulos Pratos e
+ * Restaurante funcionam com os dados carregados dos JSONs fixos.
+ * --------------------------------------------------------------- */
+static void suite_dadosCarregados(void) {
+    printf("\n=== SUITE dados carregados dos JSONs ===\n");
+
+    AppDados *db = alocarECarregar();
+
+    /* Verificar que os JSONs foram lidos */
+    VERIFICAR(
+        "JSON: restaurantes.json carregado (nRestaurantes >= 6)",
+        db->nRestaurantes >= 6
+    );
+    VERIFICAR(
+        "JSON: pratos.json carregado (nPratos >= 20)",
+        db->nPratos >= 20
+    );
+
+    /* getFeedRest via modulo Restaurante */
+    Restaurante rests[10];
+    int qtdRest = getFeedRest(db, rests, 10);
+    VERIFICAR(
+        "FEED: getFeedRest retorna 6 restaurantes do JSON",
+        qtdRest == 6
+    );
+
+    /* Sem repeticoes */
+    int repRest = 0;
+    for (int i = 0; i < qtdRest; i++)
+        for (int j = i + 1; j < qtdRest; j++)
+            if (rests[i].cnpj == rests[j].cnpj) repRest = 1;
+    VERIFICAR(
+        "FEED: getFeedRest sem restaurantes repetidos",
+        repRest == 0
+    );
+
+    /* getFeedPratos via modulo Pratos */
+    Prato pratos[25];
+    int qtdPrato = getFeedPratos(db, 12345678901LL, pratos, 25);
+    VERIFICAR(
+        "FEED: getFeedPratos retorna 20 pratos do JSON",
+        qtdPrato == PRATOS_FEED_QTD
+    );
+
+    /* Sem repeticoes */
+    int repPrato = 0;
+    for (int i = 0; i < qtdPrato; i++)
+        for (int j = i + 1; j < qtdPrato; j++)
+            if (pratos[i].idPrato == pratos[j].idPrato) repPrato = 1;
+    VERIFICAR(
+        "FEED: getFeedPratos sem pratos repetidos",
+        repPrato == 0
+    );
+
+    /* Pratos avaliados nao aparecem no feed (PDF 2.7) */
+    db->avaliacoes[0].idAval  = 1;
+    db->avaliacoes[0].cpf     = 12345678901LL;
+    db->avaliacoes[0].idPrato = 1;
+    db->avaliacoes[0].nota    = 5.0f;
+    db->nAvaliacoes = 1;
+
+    Prato pratosFiltrados[25];
+    int qtdFiltrado = getFeedPratos(db, 12345678901LL, pratosFiltrados, 25);
+    int contemAvaliado = 0;
+    for (int i = 0; i < qtdFiltrado; i++)
+        if (pratosFiltrados[i].idPrato == 1) contemAvaliado = 1;
+    VERIFICAR(
+        "FEED: prato ja avaliado nao aparece no getFeedPratos",
+        contemAvaliado == 0
+    );
+
+    free(db);
+}
+
+/* ---------------------------------------------------------------
  * MAIN
  * --------------------------------------------------------------- */
 int main(void) {
     printf("TESTES - Modulo Feed\n");
 
     suite_enterFeed();
+    suite_dadosCarregados();
 
     printf("  RESULTADO: %d/%d testes passaram\n",
            testesPassou, totalTestes);

@@ -1,28 +1,20 @@
 /*
  * buscar.c
- * Módulo Buscar – Foodies
+ * Modulo Buscar - Foodies
  *
- * Implementação das funções de acesso declaradas em buscar.h.
+ * Implementacao de enterBuscar declarada em buscar.h.
  *
- * REGRA FUNDAMENTAL: ZERO I/O de arquivo neste módulo.
- * Todas as operações leem de db->pratos[] e db->restaurantes[] (memória).
- * O JSON é de responsabilidade exclusiva da main.
+ * ZERO I/O de arquivo neste modulo.
+ * ZERO funcoes de busca neste modulo — getListaPratos e getListaRest
+ * pertencem aos modulos Pratos e Restaurante respectivamente,
+ * que sao os servidores responsaveis por esses dados encapsulados.
  *
- * Dependência externa: verificaLogin() do módulo Postar (PDF §3.4.8),
- * usada por enterBuscar para validar a sessão ativa.
+ * Dependencia: verificaLogin() do modulo Postar (PDF 3.4.8).
  */
 
 #include "buscar.h"
-#include "../postar/postar.h"   /* verificaLogin */
-
-#include <string.h>
-#include <ctype.h>
+#include "../postar/postar.h"
 #include <stddef.h>
-
-
-/* ═══════════════════════════════════════════════════════════════
- * FUNÇÕES DE ACESSO PÚBLICAS (PDF §3.4.3)
- * ═══════════════════════════════════════════════════════════════ */
 
 /*
  * enterBuscar
@@ -31,18 +23,13 @@
  */
 int enterBuscar(AppDados *db, long long int cpf) {
 
-    /* Parâmetros inválidos */
+    /* Parametros invalidos */
     if (db == NULL || cpf <= 0)
         return BUSCAR_PARAM_INVALIDO;
 
-    /* Delega verificação de sessão ao módulo Postar */
+    /* Delega verificacao de sessao ao modulo Postar */
     if (verificaLogin(db, cpf) != LOGIN_OK)
         return BUSCAR_CPF_INVALIDO;
 
-    /*
-     * Em produção, aqui a main navegaria para a tela de busca.
-     * Este módulo é lógica pura: sinaliza sucesso para o Principal.
-     */
     return BUSCAR_OK;
 }
-

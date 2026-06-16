@@ -2,8 +2,13 @@
  * teste_buscar.c
  * Testes unitarios - Modulo Buscar (Foodies)
  *
- * Cobre: enterBuscar, getListaPratos, getListaRest
- * Casos de teste conforme PDF 5.2, 5.5, 5.6
+ * Cobre: enterBuscar
+ * Casos de teste conforme PDF 5.2
+ *
+ * Os dados de pratos e restaurantes sao carregados dos JSONs fixos
+ * (pratos.json e restaurantes.json) via carregarPratos e
+ * carregarRestaurantes, exatamente como acontece na execucao real.
+ * Nenhum dado e inserido manualmente no AppDados.
  */
 
 #include <stdio.h>
@@ -12,10 +17,9 @@
 #include <assert.h>
 
 #include "../buscar/buscar.h"
+#include "../pratos/pratos.h"
+#include "../restaurante/restaurante.h"
 
-/* ---------------------------------------------------------------
- * CONTADORES DE TESTE
- * --------------------------------------------------------------- */
 static int totalTestes  = 0;
 static int testesPassou = 0;
 
@@ -28,11 +32,12 @@ static int testesPassou = 0;
         printf("  [OK]\n");                     \
     } while (0)
 
-/* ---------------------------------------------------------------
- * HELPER
- *   Aloca AppDados no heap e popula com dados de exemplo.
- * --------------------------------------------------------------- */
-static AppDados *alocarBanco(void) {
+/*
+ * alocarECarregar
+ *   Aloca AppDados no heap e carrega os JSONs fixos de pratos e
+ *   restaurantes, simulando o comportamento real do iniciarApp().
+ */
+static AppDados *alocarECarregar(void) {
     AppDados *db = malloc(sizeof(AppDados));
     assert(db != NULL);
     memset(db, 0, sizeof(AppDados));
@@ -40,36 +45,9 @@ static AppDados *alocarBanco(void) {
     db->proximoIdAval  = 1;
     db->cpfLogado      = 0;
 
-    /* 7 restaurantes */
-    struct { long long int cnpj; const char *nome; const char *end; } rests[] = {
-        { 11111111000101LL, "Toca da Traira - Barra", "Av. Barra, 100" },
-        { 22222222000102LL, "Soba",                   "Rua A, 200"     },
-        { 22222222000102LL, "Na Medida",               "Rua A, 200"     },
-        { 33333333000103LL, "McDonalds",               "Shopping X"     },
-        { 44444444000104LL, "Outback",                 "Mall Y"         },
-        { 55555555000105LL, "Subway",                  "Av. C, 50"      },
-        { 66666666000106LL, "Bobs",                    "Rua D, 10"      },
-    };
-    int nRests = (int)(sizeof(rests) / sizeof(rests[0]));
-    for (int i = 0; i < nRests; i++) {
-        db->restaurantes[i].cnpj = rests[i].cnpj;
-        strncpy(db->restaurantes[i].nome,     rests[i].nome, TAM_NOME     - 1);
-        strncpy(db->restaurantes[i].endereco, rests[i].end,  TAM_ENDERECO - 1);
-    }
-    db->nRestaurantes = nRests;
-
-    /* 7 pratos */
-    const char *nomesPratos[] = {
-        "Frango Grelhado", "Frango Frito", "Salada Caesar",
-        "Picanha", "X-Burguer", "Yakisoba", "Wrap de Frango"
-    };
-    int nPratos = (int)(sizeof(nomesPratos) / sizeof(nomesPratos[0]));
-    for (int i = 0; i < nPratos; i++) {
-        db->pratos[i].idPrato = db->proximoIdPrato++;
-        strncpy(db->pratos[i].nome, nomesPratos[i], TAM_NOME - 1);
-        db->pratos[i].cnpjRestaurante = rests[i % nRests].cnpj;
-    }
-    db->nPratos = nPratos;
+    /* Carregar dados fixos dos JSONs, como faz o Principal */
+    carregarRestaurantes(db);
+    carregarPratos(db);
 
     return db;
 }
@@ -86,7 +64,7 @@ static AppDados *alocarBanco(void) {
 static void suite_enterBuscar(void) {
     printf("\n=== SUITE enterBuscar ===\n");
 
-    AppDados *db = alocarBanco();
+    AppDados *db = alocarECarregar();
 
     /* C1 - CPF valido e logado
      * Retorno esperado: BUSCAR_OK (0) */
@@ -130,12 +108,73 @@ static void suite_enterBuscar(void) {
 }
 
 /* ---------------------------------------------------------------
+ * SUITE 2 - integracao com dados reais dos JSONs
+ * Verifica que os JSONs foram carregados corretamente e que as
+ * funcoes de busca dos modulos Pratos e Restaurante funcionam
+ * com esses dados.
+ * --------------------------------------------------------------- */
+static void suite_dadosCarregados(void) {
+    printf("\n=== SUITE dados carregados dos JSONs ===\n");
+
+    AppDados *db = alocarECarregar();
+
+    /* Verificar que os JSONs foram lidos */
+    VERIFICAR(
+        "JSON: restaurantes.json carregado (nRestaurantes > 0)",
+        db->nRestaurantes > 0
+    );
+    VERIFICAR(
+        "JSON: pratos.json carregado (nPratos > 0)",
+        db->nPratos > 0
+    );
+
+    /* Busca por nome usando getListaRest do modulo Restaurante */
+    Restaurante rests[100];
+    int qtdRest = getListaRest(db, "Toca", rests, 100);
+    VERIFICAR(
+        "BUSCA: getListaRest('Toca') encontra restaurantes do JSON",
+        qtdRest > 0
+    );
+
+    /* Busca por nome usando getListaPratos do modulo Pratos */
+    Prato pratos[100];
+    int qtdPrato = getListaPratos(db, "Frango", pratos, 100);
+    VERIFICAR(
+        "BUSCA: getListaPratos('Frango') encontra pratos do JSON",
+        qtdPrato > 0
+    );
+
+    /* Busca por nome vazio retorna 0 (PDF 2.4) */
+    VERIFICAR(
+        "BUSCA: getListaRest com nome vazio => 0",
+        getListaRest(db, "", rests, 100) == 0
+    );
+    VERIFICAR(
+        "BUSCA: getListaPratos com nome vazio => 0",
+        getListaPratos(db, "", pratos, 100) == 0
+    );
+
+    /* Nome inexistente retorna 0 */
+    VERIFICAR(
+        "BUSCA: getListaRest nome inexistente => 0",
+        getListaRest(db, "Giraffas", rests, 100) == 0
+    );
+    VERIFICAR(
+        "BUSCA: getListaPratos nome inexistente => 0",
+        getListaPratos(db, "Caviar", pratos, 100) == 0
+    );
+
+    free(db);
+}
+
+/* ---------------------------------------------------------------
  * MAIN
  * --------------------------------------------------------------- */
 int main(void) {
     printf("TESTES - Modulo Buscar\n");
 
     suite_enterBuscar();
+    suite_dadosCarregados();
 
     printf("  RESULTADO: %d/%d testes passaram\n",
            testesPassou, totalTestes);
