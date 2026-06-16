@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include "principal/principal.h"
 #include "perfil/perfil.h"
@@ -26,6 +27,33 @@
 #include "avaliacao/avaliacao.h"
 #include "buscar/buscar.h"
 #include "feed/feed.h"
+
+/* =================================================================
+ * PONTEIRO GLOBAL PARA O BANCO (necessario para o handler de SIGINT)
+ *
+ * signal handlers nao recebem argumentos proprios do programa, entao
+ * o banco precisa ser acessivel via variavel global. O ponteiro so e
+ * atribuido apos iniciarApp() e anulado apos encerrarApp() para evitar
+ * double-free caso o handler seja invocado num momento inesperado.
+ * ================================================================= */
+static AppDados *g_db = NULL;
+
+/*
+ * tratarSIGINT
+ * Handler registrado para SIGINT (Ctrl+C).
+ * Garante que os dados em memoria sejam persistidos nos JSONs mesmo
+ * quando o usuario encerra o programa de forma abrupta, respeitando
+ * a regra de que os arquivos so sao escritos no momento do encerramento.
+ */
+static void tratarSIGINT(int sig) {
+    (void)sig;  /* parametro exigido pela assinatura, mas nao usado */
+    printf("\nPrograma interrompido. Salvando dados...\n");
+    if (g_db != NULL) {
+        encerrarApp(g_db);
+        g_db = NULL;
+    }
+    exit(0);
+}
 
 /* =================================================================
  * DADOS INICIAIS (pratos e restaurantes fixos no sistema)
@@ -526,6 +554,15 @@ int main(void) {
         printf("Erro fatal: nao foi possivel alocar memoria.\n");
         return 1;
     }
+
+    /*
+     * 1b. Registrar handler para SIGINT (Ctrl+C).
+     * Feito apos iniciarApp() para que g_db ja aponte para um banco valido
+     * antes de qualquer possivel interrupcao. O handler chama encerrarApp(),
+     * que e o mesmo caminho de saida normal, garantindo consistencia dos JSONs.
+     */
+    g_db = db;
+    signal(SIGINT, tratarSIGINT);
 
     /*
      * 2. Popular pratos e restaurantes fixos do sistema.
