@@ -14,7 +14,9 @@
  */
 
 #include "principal.h"
-#include "../perfil/perfil.h"   /* carregarPerfis, salvarPerfis */
+#include "../perfil/perfil.h"
+#include "../restaurante/restaurante.h"
+#include "../pratos/pratos.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -164,7 +166,9 @@ AppDados *iniciarApp(void) {
      * A ordem nao importa pois os dados sao independentes,
      * mas perfis vem primeiro por convencao.
      */
-    carregarPerfis(db);      /* modulo Perfil le perfis.json      */
+    carregarPerfis(db);
+    carregarRestaurantes(db);
+    carregarPratos(db);
     carregarAvaliacoes(db);  /* modulo Principal le avaliacoes.json */
 
     return db;
@@ -183,7 +187,7 @@ void encerrarApp(AppDados *db) {
      * Salvar cada JSON pelo modulo responsavel.
      * Mesmo que algum salvar falhe, continuamos para liberar a memoria.
      */
-    salvarPerfis(db);      /* modulo Perfil escreve perfis.json      */
+    salvarPerfis(db);
     salvarAvaliacoes(db);  /* modulo Principal escreve avaliacoes.json */
 
     /* Liberar a memoria do banco */

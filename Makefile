@@ -1,11 +1,11 @@
 # Makefile - Foodies
-# Modulos: Avaliacao, Postar, Buscar, Feed, Perfil, Principal
+# Modulos: Avaliacao, Postar, Buscar, Feed, Perfil, Principal, Restaurante, Pratos
 #
 # Uso:
-#   make                 - compila o programa principal e todos os testes
-#   make foodies         - compila apenas o programa principal
-#   make testes          - compila e executa todos os testes
-#   make limpar          - remove binarios gerados
+#   make                    - compila o programa principal e todos os testes
+#   make app                - compila apenas o programa principal (gerando 'foodies')
+#   make testes             - compila e executa todos os testes
+#   make limpar             - remove binarios gerados
 
 CC     = gcc
 CFLAGS = -Wall -Wextra -std=c11 -I.
@@ -17,6 +17,8 @@ DIR_BUSCAR = buscar
 DIR_FEED   = feed
 DIR_PERF   = perfil
 DIR_PRINC  = principal
+DIR_REST   = restaurante
+DIR_PRAT   = pratos
 DIR_TEST   = testes
 
 # --- Fontes dos modulos ---
@@ -26,6 +28,8 @@ SRC_BUSCAR = $(DIR_BUSCAR)/buscar.c
 SRC_FEED   = $(DIR_FEED)/feed.c
 SRC_PERF   = $(DIR_PERF)/perfil.c
 SRC_PRINC  = $(DIR_PRINC)/principal.c
+SRC_REST   = $(DIR_REST)/restaurante.c
+SRC_PRAT   = $(DIR_PRAT)/pratos.c
 SRC_MAIN   = main.c
 
 # --- Fontes dos testes ---
@@ -35,6 +39,8 @@ TEST_BUSCAR = $(DIR_TEST)/teste_buscar.c
 TEST_FEED   = $(DIR_TEST)/teste_feed.c
 TEST_PERF   = $(DIR_TEST)/teste_perfil.c
 TEST_PRINC  = $(DIR_TEST)/teste_principal.c
+TEST_REST   = $(DIR_TEST)/teste_restaurante.c
+TEST_PRAT   = $(DIR_TEST)/teste_pratos.c
 
 # --- Executaveis ---
 BIN_AVAL   = $(DIR_TEST)/teste_avaliacao
@@ -43,20 +49,22 @@ BIN_BUSCAR = $(DIR_TEST)/teste_buscar
 BIN_FEED   = $(DIR_TEST)/teste_feed
 BIN_PERF   = $(DIR_TEST)/teste_perfil
 BIN_PRINC  = $(DIR_TEST)/teste_principal
+BIN_REST   = $(DIR_TEST)/teste_restaurante
+BIN_PRAT   = $(DIR_TEST)/teste_pratos
 BIN_MAIN   = foodies
 
 # ================================================================
 # COMPILACAO
 # ================================================================
 
-# Alvo padrao compila o foodies e os testes
-all: $(BIN_MAIN) $(BIN_AVAL) $(BIN_POST) $(BIN_BUSCAR) $(BIN_FEED) $(BIN_PERF) $(BIN_PRINC)
+all: $(BIN_MAIN) $(BIN_AVAL) $(BIN_POST) $(BIN_BUSCAR) $(BIN_FEED) \
+     $(BIN_PERF) $(BIN_PRINC) $(BIN_REST) $(BIN_PRAT)
 
-# Regra unificada para compilar o executavel do sistema
-$(BIN_MAIN): $(SRC_MAIN) $(SRC_PRINC) $(SRC_PERF) $(SRC_POST) $(SRC_AVAL) $(SRC_BUSCAR) $(SRC_FEED)
+# Programa Principal - Garante link com todos os modulos do ecossistema
+$(BIN_MAIN): $(SRC_MAIN) $(SRC_PRINC) $(SRC_PERF) $(SRC_POST) $(SRC_AVAL) $(SRC_BUSCAR) $(SRC_FEED) $(SRC_REST) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
-# Avaliacao - usa math.h, requer -lm
+# Avaliacao - usa math.h -> -lm
 $(BIN_AVAL): $(TEST_AVAL) $(SRC_AVAL)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
@@ -64,21 +72,29 @@ $(BIN_AVAL): $(TEST_AVAL) $(SRC_AVAL)
 $(BIN_POST): $(TEST_POST) $(SRC_POST)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Buscar - depende de postar.c (verificaLogin)
-$(BIN_BUSCAR): $(TEST_BUSCAR) $(SRC_BUSCAR) $(SRC_POST)
+# Buscar - inclui dependencias de postar, restaurante e pratos para evitar 'undefined reference'
+$(BIN_BUSCAR): $(TEST_BUSCAR) $(SRC_BUSCAR) $(SRC_POST) $(SRC_REST) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Feed - depende de postar.c (verificaLogin)
-$(BIN_FEED): $(TEST_FEED) $(SRC_FEED) $(SRC_POST)
+# Feed - inclui dependencias de postar, restaurante e pratos para evitar 'undefined reference'
+$(BIN_FEED): $(TEST_FEED) $(SRC_FEED) $(SRC_POST) $(SRC_REST) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Perfil - gerencia perfis.json
+# Perfil
 $(BIN_PERF): $(TEST_PERF) $(SRC_PERF)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Principal - coordena todos os JSONs; depende de perfil.c e avaliacao.c
-$(BIN_PRINC): $(TEST_PRINC) $(SRC_PRINC) $(SRC_PERF) $(SRC_AVAL)
+# Principal
+$(BIN_PRINC): $(TEST_PRINC) $(SRC_PRINC) $(SRC_PERF) $(SRC_AVAL) $(SRC_REST) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
+
+# Restaurante
+$(BIN_REST): $(TEST_REST) $(SRC_REST)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Pratos
+$(BIN_PRAT): $(TEST_PRAT) $(SRC_PRAT)
+	$(CC) $(CFLAGS) -o $@ $^
 
 # ================================================================
 # EXECUCAO DOS TESTES
@@ -103,35 +119,28 @@ testes: all
 	@echo ""
 	@echo "--- teste_principal ---"
 	./$(BIN_PRINC)
+	@echo ""
+	@echo "--- teste_restaurante ---"
+	./$(BIN_REST)
+	@echo ""
+	@echo "--- teste_pratos ---"
+	./$(BIN_PRAT)
 
 # Alvos individuais de conveniencia
-foodies: $(BIN_MAIN)
+app: $(BIN_MAIN)
 
-teste_avaliacao: $(BIN_AVAL)
-	./$(BIN_AVAL)
-
-teste_postar: $(BIN_POST)
-	./$(BIN_POST)
-
-teste_buscar: $(BIN_BUSCAR)
-	./$(BIN_BUSCAR)
-
-teste_feed: $(BIN_FEED)
-	./$(BIN_FEED)
-
-teste_perfil: $(BIN_PERF)
-	./$(BIN_PERF)
-
-teste_principal: $(BIN_PRINC)
-	./$(BIN_PRINC)
+teste_avaliacao:  $(BIN_AVAL)  ; ./$(BIN_AVAL)
+teste_postar:     $(BIN_POST)  ; ./$(BIN_POST)
+teste_buscar:     $(BIN_BUSCAR); ./$(BIN_BUSCAR)
+teste_feed:       $(BIN_FEED)  ; ./$(BIN_FEED)
+teste_perfil:     $(BIN_PERF)  ; ./$(BIN_PERF)
+teste_principal:  $(BIN_PRINC) ; ./$(BIN_PRINC)
+teste_restaurante:$(BIN_REST)  ; ./$(BIN_REST)
+teste_pratos:     $(BIN_PRAT)  ; ./$(BIN_PRAT)
 
 # ================================================================
 # LIMPEZA
 # ================================================================
 
 limpar:
-	rm -f $(BIN_MAIN) $(BIN_AVAL) $(BIN_POST) $(BIN_BUSCAR) $(BIN_FEED) $(BIN_PERF) $(BIN_PRINC)
-
-.PHONY: all testes limpar foodies \
-        teste_avaliacao teste_postar teste_buscar \
-        teste_feed teste_perfil teste_principal
+	del /f /q $(BIN_MAIN).exe testes\teste_avaliacao.exe testes\teste_postar.exe testes\teste_buscar.exe testes\teste_feed.exe testes\teste_perfil.exe testes\teste_principal.exe testes\teste_restaurante.exe testes\teste_pratos.exe 2>nul || exit 0

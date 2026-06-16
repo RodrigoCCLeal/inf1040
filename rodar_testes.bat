@@ -46,9 +46,21 @@ echo --- Modulo Principal ---
 testes\teste_principal.exe
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
+REM --- teste_restaurante ---
+echo.
+echo --- Modulo Restaurante ---
+testes\teste_restaurante.exe
+if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
+
+REM --- teste_pratos ---
+echo.
+echo --- Modulo Pratos ---
+testes\teste_pratos.exe
+if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
+
 REM --- Resumo final ---
 echo.
 echo ================================================
-echo   RESUMO: %PASSOU%/6 modulos passaram
+echo   RESUMO: %PASSOU%/8 modulos passaram
 if %FALHOU% GTR 0 echo   ATENCAO: %FALHOU% modulo(s) com falha
 echo ================================================
