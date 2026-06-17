@@ -74,6 +74,27 @@ static int pratoJaAvaliado(long long int cpf, int idPrato) {
  * FUNCAO DE CARGA DO JSON (chamada exclusivamente pelo Principal)
  * ================================================================= */
 
+/*
+ * Objetivo: carregar os dados de pratos a partir do arquivo JSON.
+ * Descricao:
+ *     O sistema deve persistir os dados contidos no modulo Pratos.
+ *     O sistema deve carregar os dados do modulo Pratos a partir do arquivo
+ *     "pratos.json", populando o vetor estatico interno linha a linha.
+ *     Chamada uma unica vez pelo Principal no inicio da execucao.
+ *     O JSON e somente leitura; nao e regravado ao encerrar.
+ * Acoplamento:
+ *     Parametros:
+ *       • (nenhum)
+ *     Retornos:
+ *       • int - 0 em caso de sucesso ou arquivo inexistente.
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • A estrutura de dados interna de pratos esta disponivel.
+ *       • O arquivo "pratos.json" existe.
+ * Assertivas de Saida:
+ *   • O vetor pratos[] esta populado com os registros do JSON e nPratos
+ *     reflete a quantidade carregada, ou nPratos == 0 em caso de falha.
+ */
 int carregarPratos(void) {
     nPratos = 0;
 
@@ -115,6 +136,26 @@ int carregarPratos(void) {
  * FUNCOES DE ACESSO PUBLICAS
  * ================================================================= */
 
+/*
+ * Objetivo: obter um ponteiro para o prato correspondente ao ID informado.
+ * Descricao:
+ *     O sistema deve percorrer o vetor estatico interno buscando o prato
+ *     pelo idPrato e retornar um ponteiro direto para ele. Usada pelo modulo
+ *     Avaliacao para validar a existencia do prato antes de postAval().
+ * Acoplamento:
+ *     Parametros:
+ *       • int idPrato - identificador do prato a buscar (deve ser > 0).
+ *     Retornos:
+ *       • Prato* - ponteiro para o prato encontrado no vetor interno.
+ *       • NULL   - se idPrato <= 0 ou prato nao encontrado.
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • idPrato > 0.
+ *       • carregarPratos() foi chamada anteriormente.
+ * Assertivas de Saida:
+ *   • Retorna ponteiro valido se o idPrato existe, NULL caso contrario.
+ *   • Nenhum estado interno e alterado por esta funcao.
+ */
 Prato *getPratos(int idPrato) {
     if (idPrato <= 0) return NULL;
 
@@ -125,6 +166,29 @@ Prato *getPratos(int idPrato) {
     return NULL;
 }
 
+/*
+ * Objetivo: buscar pratos cujo nome contenha a substring fornecida.
+ * Descricao:
+ *     O sistema deve percorrer o vetor interno realizando busca case-insensitive
+ *     e copiar os pratos cujo nome contenha nome_prato como substring para
+ *     resultado[], respeitando maxResultados. Nome vazio retorna 0.
+ * Acoplamento:
+ *     Parametros:
+ *       • const char *nome_prato   - substring a buscar no nome (nao NULL).
+ *       • Prato      *resultado    - buffer de destino para os pratos encontrados.
+ *       • int         maxResultados - capacidade maxima do buffer (deve ser > 0).
+ *     Retornos:
+ *       • int >= 0              - quantidade de pratos copiados para resultado[].
+ *       • PRATOS_NOME_INVALIDO (-1) - nome_prato == NULL, resultado == NULL ou max <= 0.
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • nome_prato != NULL, resultado != NULL, maxResultados > 0.
+ *       • carregarPratos() foi chamada anteriormente.
+ * Assertivas de Saida:
+ *   • resultado[] contem os pratos cujo nome contem nome_prato como substring.
+ *   • O retorno indica a quantidade efetivamente preenchida em resultado[].
+ *   • O vetor interno nao e alterado.
+ */
 int getListaPratos(const char *nome_prato, Prato *resultado, int maxResultados) {
     if (nome_prato == NULL || resultado == NULL || maxResultados <= 0)
         return PRATOS_NOME_INVALIDO;
@@ -143,8 +207,27 @@ int getListaPratos(const char *nome_prato, Prato *resultado, int maxResultados) 
 }
 
 /*
- * getPratosPorCnpj / getMenu
- * Ambas realizam a mesma operacao varrendo a colecao privada local
+ * Objetivo: recuperar todos os pratos pertencentes a um restaurante pelo CNPJ.
+ * Descricao:
+ *     O sistema deve percorrer o vetor interno e copiar para resultado[] todos
+ *     os pratos cujo cnpjRestaurante corresponda ao CNPJ fornecido. Atende
+ *     diretamente o modulo Restaurante para montar seu menu.
+ * Acoplamento:
+ *     Parametros:
+ *       • long long int cnpj          - CNPJ do restaurante (deve ser > 0).
+ *       • Prato        *resultado     - buffer de destino para os pratos encontrados.
+ *       • int           maxResultados - capacidade maxima do buffer (deve ser > 0).
+ *     Retornos:
+ *       • int >= 0                - quantidade de pratos copiados para resultado[].
+ *       • PRATOS_PARAM_INVALIDO (-2) - cnpj <= 0, resultado == NULL ou max <= 0.
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • cnpj > 0, resultado != NULL, maxResultados > 0.
+ *       • carregarPratos() foi chamada anteriormente.
+ * Assertivas de Saida:
+ *   • resultado[] contem os pratos do restaurante com o CNPJ fornecido.
+ *   • O retorno indica a quantidade efetivamente preenchida em resultado[].
+ *   • O vetor interno nao e alterado.
  */
 int getPratosPorCnpj(long long int cnpj, Prato *resultado, int maxResultados) {
     if (cnpj <= 0 || resultado == NULL || maxResultados <= 0)
@@ -160,10 +243,54 @@ int getPratosPorCnpj(long long int cnpj, Prato *resultado, int maxResultados) {
     return encontrados;
 }
 
+/*
+ * Objetivo: retornar o menu completo de um restaurante pelo CNPJ.
+ * Descricao:
+ *     O sistema deve delegar integralmente a chamada para getPratosPorCnpj(),
+ *     mantendo compatibilidade com o contrato de interface original.
+ * Acoplamento:
+ *     Parametros:
+ *       • long long int cnpj          - CNPJ do restaurante (deve ser > 0).
+ *       • Prato        *resultado     - buffer de destino para os pratos encontrados.
+ *       • int           maxResultados - capacidade maxima do buffer (deve ser > 0).
+ *     Retornos:
+ *       • Mesmo retorno de getPratosPorCnpj().
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • cnpj > 0, resultado != NULL, maxResultados > 0.
+ *       • carregarPratos() foi chamada anteriormente.
+ * Assertivas de Saida:
+ *   • Mesmo comportamento de getPratosPorCnpj().
+ */
 int getMenu(long long int cnpj, Prato *resultado, int maxResultados) {
     return getPratosPorCnpj(cnpj, resultado, maxResultados);
 }
 
+/*
+ * Objetivo: selecionar aleatoriamente pratos nao avaliados pelo usuario para o feed.
+ * Descricao:
+ *     O sistema deve filtrar os pratos ainda nao avaliados pelo CPF fornecido
+ *     (consultando verificarSeAvaliado() do modulo Avaliacao), embaralhar os
+ *     elegiveis com Fisher-Yates e retornar exatamente PRATOS_FEED_QTD (20) pratos.
+ *     Inicializa a semente aleatoria na primeira chamada.
+ * Acoplamento:
+ *     Parametros:
+ *       • long long int cpf           - CPF do usuario logado (deve ser > 0).
+ *       • Prato        *resultado     - buffer de destino para os pratos selecionados.
+ *       • int           maxResultados - capacidade maxima do buffer (deve ser > 0).
+ *     Retornos:
+ *       • PRATOS_FEED_QTD (20)     - quantidade de pratos copiados com sucesso.
+ *       • PRATOS_INSUFICIENTE (-4) - menos de 20 pratos elegiveis (nao avaliados).
+ *       • PRATOS_PARAM_INVALIDO (-2) - resultado == NULL, cpf <= 0 ou max <= 0.
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • cpf > 0, resultado != NULL, maxResultados > 0.
+ *       • carregarPratos() e carregarAvaliacoes() foram chamadas anteriormente.
+ * Assertivas de Saida:
+ *   • resultado[] contem PRATOS_FEED_QTD pratos aleatorios nao avaliados pelo CPF.
+ *   • A semente aleatoria foi inicializada.
+ *   • O vetor interno de pratos nao e alterado.
+ */
 int getFeedPratos(long long int cpf, Prato *resultado, int maxResultados) {
     if (resultado == NULL || cpf <= 0 || maxResultados <= 0)
         return PRATOS_PARAM_INVALIDO;
@@ -193,10 +320,24 @@ int getFeedPratos(long long int cpf, Prato *resultado, int maxResultados) {
     return copiar;
 }
 
-/* ---------------------------------------------------------------
- * listarNomesPratos
- * Exibe na saida padrao o ID e o Nome de todos os pratos cadastrados.
- * --------------------------------------------------------------- */
+/*
+ * Objetivo: exibir no terminal o ID e o nome de todos os pratos cadastrados.
+ * Descricao:
+ *     O sistema deve percorrer o vetor interno e imprimir no stdout cada prato
+ *     no formato "ID: X | Nome", facilitando a escolha do usuario na tela de
+ *     postagem de avaliacao.
+ * Acoplamento:
+ *     Parametros:
+ *       • (nenhum)
+ *     Retornos:
+ *       • (nenhum)
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • carregarPratos() foi chamada anteriormente.
+ * Assertivas de Saida:
+ *   • Todos os pratos do vetor interno foram impressos no stdout.
+ *   • Nenhum estado interno e alterado por esta funcao.
+ */
 void listarNomesPratos(void) {
     printf("\n--- Pratos Disponiveis ---\n");
     for (int i = 0; i < nPratos; i++) {
@@ -204,12 +345,28 @@ void listarNomesPratos(void) {
     }
 }
 
-/* ---------------------------------------------------------------
- * obterMediaPrato
- * Calcula a media aritmetica das notas de um prato pelo seu ID.
- * Modifica o float apontado por mediaDestino e retorna a quantidade
- * total de avaliacoes computadas para o calculo.
- * --------------------------------------------------------------- */
+/*
+ * Objetivo: calcular a media aritmetica das notas de um prato e armazena-la.
+ * Descricao:
+ *     O sistema deve recuperar todas as avaliacoes do prato via verAval() do
+ *     modulo Avaliacao, calcular a media aritmetica das notas e armazenar o
+ *     resultado no ponteiro mediaDestino. Retorna a quantidade de avaliacoes.
+ * Acoplamento:
+ *     Parametros:
+ *       • int    idPrato       - ID do prato a calcular (deve ser > 0).
+ *       • float *mediaDestino  - ponteiro onde a media sera armazenada (nao NULL).
+ *     Retornos:
+ *       • int >= 0 - quantidade de avaliacoes usadas no calculo.
+ *       • 0        - se idPrato <= 0 ou sem avaliacoes (*mediaDestino == 0.0f).
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • idPrato > 0, mediaDestino != NULL.
+ *       • carregarAvaliacoes() e carregarPratos() foram chamadas anteriormente.
+ * Assertivas de Saida:
+ *   • *mediaDestino contem a media em [0.0, 5.0].
+ *   • O retorno indica a quantidade de avaliacoes computadas.
+ *   • O vetor interno nao e alterado.
+ */
 int obterMediaPrato(int idPrato, float *mediaDestino) {
     assert(mediaDestino != NULL);
 

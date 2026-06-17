@@ -21,8 +21,23 @@
  * ================================================================= */
 
 /*
- * iniciarApp
- * Inicializa e popula o estado interno de todos os modulos do sistema.
+ * Objetivo: inicializar o sistema Foodies e carregar os dados de todos os modulos.
+ * Descricao:
+ *     O sistema deve coordenar a inicializacao de cada modulo especialista
+ *     (Perfil, Restaurante, Pratos e Avaliacao), invocando suas funcoes de
+ *     carga a partir dos respectivos arquivos JSON.
+ * Acoplamento:
+ *     Parametros:
+ *       • (nenhum)
+ *     Retornos:
+ *       • int - 0 em caso de sucesso.
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • Os modulos Perfil, Restaurante, Pratos e Avaliacao estao acessiveis.
+ *       • Os arquivos JSON existem ou a ausencia deles e tratada por cada modulo.
+ * Assertivas de Saida:
+ *   • Todas as estruturas internas dos modulos estao populadas.
+ *   • O sistema esta pronto para operar.
  */
 int iniciarApp(void) {
     
@@ -38,8 +53,24 @@ int iniciarApp(void) {
 }
 
 /*
- * encerrarApp
- * Solicita que cada modulo salve suas alteracoes em disco.
+ * Objetivo: encerrar o sistema Foodies salvando os dados mutaveis em disco.
+ * Descricao:
+ *     O sistema deve garantir a persistencia dos dados que sofreram alteracoes
+ *     durante a execucao, delegando o salvamento para os modulos Perfil e
+ *     Avaliacao. Modulos com dados fixos (Pratos, Restaurante) nao sao
+ *     chamados pois seus JSONs nao sao regravados.
+ * Acoplamento:
+ *     Parametros:
+ *       • (nenhum)
+ *     Retornos:
+ *       • (nenhum)
+ * Condicoes de Acoplamento:
+ *     Assertivas de Entrada:
+ *       • iniciarApp() foi chamada anteriormente.
+ *       • Os modulos Perfil e Avaliacao possuem dados validos em memoria.
+ * Assertivas de Saida:
+ *   • Os arquivos perfis.json e avaliacoes.json estao atualizados com os
+ *     dados presentes em memoria no momento da chamada.
  */
 void encerrarApp(void) {
     

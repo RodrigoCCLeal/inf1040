@@ -15,49 +15,49 @@ echo ================================================
 REM --- teste_avaliacao ---
 echo.
 echo --- Modulo Avaliacao ---
-testes\teste_avaliacao.exe
+Testes\teste_avaliacao
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_postar ---
 echo.
 echo --- Modulo Postar ---
-testes\teste_postar.exe
+Testes\teste_postar
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_buscar ---
 echo.
 echo --- Modulo Buscar ---
-testes\teste_buscar.exe
+Testes\teste_buscar
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_feed ---
 echo.
 echo --- Modulo Feed ---
-testes\teste_feed.exe
+Testes\teste_feed
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_perfil ---
 echo.
 echo --- Modulo Perfil ---
-testes\teste_perfil.exe
+Testes\teste_perfil
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_principal ---
 echo.
 echo --- Modulo Principal ---
-testes\teste_principal.exe
+Testes\teste_principal
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_restaurante ---
 echo.
 echo --- Modulo Restaurante ---
-testes\teste_restaurante.exe
+Testes\teste_restaurante
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_pratos ---
 echo.
 echo --- Modulo Pratos ---
-testes\teste_pratos.exe
+Testes\teste_pratos
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- Resumo final ---
