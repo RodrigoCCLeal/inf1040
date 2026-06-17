@@ -391,6 +391,7 @@ static void menuPrincipal(void) {
             case 5:
                 printf("Saindo da conta...\n");
                 encerrarSessaoAtual(); /* Limpa sessao no modulo Postar */
+                definirCpfLogado(0); /* limpa o login no perfil */
                 return;
             case 0:
                 printf("Encerrando o programa...\n");
