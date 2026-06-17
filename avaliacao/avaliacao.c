@@ -215,10 +215,15 @@ int imprimirAvaliacoesUsuario(long long int cpf) {
     assert(cpf > 0);
 
     int contagem = 0;
-    // TODO: Varra seu vetor/estrutura interna de avaliações.
-    // Para cada avaliação onde (aval.cpf == cpf):
-    //     printf("- Prato ID %d: Nota %.1f | %s\n", aval.idPrato, aval.nota, aval.comentario);
-    //     contagem++;
+    for (int i = 0; i < nAvaliacoes; i++) {
+        if (avaliacoes[i].cpf != cpf) continue;
+        printf("- [ID %d] Prato ID %d: Nota %.1f | %s\n",
+               avaliacoes[i].idAval,
+               avaliacoes[i].idPrato,
+               avaliacoes[i].nota,
+               avaliacoes[i].comentario);
+        contagem++;
+    }
 
-    return contagem; /* Retorna a quantidade de avaliações impressas */
+    return contagem;
 }

@@ -199,9 +199,9 @@ int getFeedPratos(long long int cpf, Prato *resultado, int maxResultados) {
  * --------------------------------------------------------------- */
 void listarNomesPratos(void) {
     printf("\n--- Pratos Disponiveis ---\n");
-    // TODO: Varra seu vetor interno oculto de pratos e imprima-os:
-    // For de 0 até nPratosInternos:
-    //     printf("ID: %d | %s\n", pratosInternos[i].idPrato, pratosInternos[i].nome);
+    for (int i = 0; i < nPratos; i++) {
+        printf("ID: %d | %s\n", pratos[i].idPrato, pratos[i].nome);
+    }
 }
 
 /* ---------------------------------------------------------------

@@ -95,6 +95,7 @@ static void telaPerfil(void) {
             /* O modulo Perfil valida os dados e injeta o CPF no modulo Postar via API */
             int ret = enterPerfil(cpf, senha);
             if (ret == PERFIL_OK) {
+                definirSessaoAtual(cpf);
                 printf("Login realizado com sucesso! Bem-vindo(a).\n");
             } else if (ret == PERFIL_DADOS_INVALIDOS) {
                 printf("CPF ou senha incorretos.\n");
