@@ -202,9 +202,13 @@ void obterNomeUsuario(long long int cpf, char *nomeDestino) {
     assert(cpf > 0);
     assert(nomeDestino != NULL);
 
-    // TODO: Busque no seu vetor interno oculto de usuários pelo CPF.
-    // Se achar, copie para o destino. Exemplo:
-    // strcpy(nomeDestino, usuarioEncontrado.nome);
+    // Busca pelo usuario com o cpf da entrada
+    Usuario *usuarioEncontrado;
+    usuarioEncontrado = getUsuario(cpf);
+    if (usuarioEncontrado != NULL){
+        strcpy(nomeDestino, usuarioEncontrado->nome);
+        return;
+    }
     // Se não achar, devolva uma string padrão vazia ou "Usuario".
     strcpy(nomeDestino, "Usuario"); 
 }
