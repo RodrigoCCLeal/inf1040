@@ -254,9 +254,6 @@ static void telaBuscar(long long int cpfLogado) {
     }
 }
 
-/* -----------------------------------------------------------------
- * telaFeed
- * ----------------------------------------------------------------- */
 static void telaFeed(long long int cpfLogado) {
     if (enterFeed(cpfLogado) != FEED_OK) {
         printf("Acesso negado. Faca login primeiro.\n");
@@ -285,10 +282,13 @@ static void telaFeed(long long int cpfLogado) {
         }
         printf("Sugestoes de pratos:\n");
         for (int i = 0; i < qtd; i++) {
-            printf("  [%d] %s - %s\n",
+            Restaurante rest = obterRestaurantePorCnpj(pratos[i].cnpjRestaurante);
+            printf("  [%d] %s - %s\n      Restaurante: %s (%s)\n",
                    pratos[i].idPrato,
                    pratos[i].nome,
-                   pratos[i].descricao);
+                   pratos[i].descricao,
+                   rest.cnpj != 0 ? rest.nome : "Desconhecido",
+                   rest.cnpj != 0 ? rest.endereco : "");
         }
 
     } else if (opcao == 2) {

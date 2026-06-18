@@ -58,11 +58,11 @@ typedef struct {
 int obterTotalRestaurantes(void);
 
 /*
- * obterRestaurantePorIndice
- * Retorna uma copia do restaurante localizado em um determinado indice do banco.
- * Util para integracoes ou iteracoes externas seguras.
+ * obterRestaurantePorCnpj
+ * Retorna uma copia do restaurante identificado pelo CNPJ fornecido.
+ * Util para integracoes ou iteracoes externas seguras sem expor o vetor interno.
  */
-Restaurante obterRestaurantePorIndice(int indice);
+Restaurante obterRestaurantePorCnpj(long long int cnpj);
 
 /* =================================================================
  * FUNCOES DE I/O E GERENCIAMENTO DO BANCO DE DADOS OCULTO

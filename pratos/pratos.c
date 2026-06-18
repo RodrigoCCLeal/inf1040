@@ -11,6 +11,7 @@
 
 #include "pratos.h"
 #include "../avaliacao/avaliacao.h" /* Necessario para verificar se prato foi avaliado */
+#include "../restaurante/restaurante.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -341,10 +342,13 @@ int getFeedPratos(long long int cpf, Prato *resultado, int maxResultados) {
 void listarNomesPratos(void) {
     printf("\n--- Pratos Disponiveis ---\n");
     for (int i = 0; i < nPratos; i++) {
-        printf("ID: %d | %s\n", pratos[i].idPrato, pratos[i].nome);
+        Restaurante rest = obterRestaurantePorCnpj(pratos[i].cnpjRestaurante);
+        printf("ID: %d | %s - %s\n",
+               pratos[i].idPrato,
+               pratos[i].nome,
+               rest.cnpj != 0 ? rest.nome : "Restaurante desconhecido");
     }
 }
-
 /*
  * Objetivo: calcular a media aritmetica das notas de um prato e armazena-la.
  * Descricao:

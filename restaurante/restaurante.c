@@ -84,31 +84,34 @@ int obterTotalRestaurantes(void) {
 }
 
 /*
- * Objetivo: retornar uma copia do restaurante em um determinado indice do banco interno.
+ * Objetivo: retornar uma copia do restaurante identificado pelo CNPJ fornecido.
  * Descricao:
- *     O sistema deve acessar o vetor estatico interno pelo indice fornecido e
- *     retornar uma copia por valor. Se o indice for invalido, retorna uma struct
- *     zerada. Util para iteracoes externas seguras sem expor o vetor interno.
+ *     O sistema deve varrer o vetor estatico interno buscando o restaurante
+ *     cujo CNPJ coincida com o fornecido e retornar uma copia por valor.
+ *     Se nao encontrado, retorna uma struct zerada.
  * Acoplamento:
  *     Parametros:
- *       • int indice - posicao no vetor interno (0 <= indice < nRestaurantes).
+ *       • long long int cnpj - identificador unico do restaurante.
  *     Retornos:
- *       • Restaurante - copia do registro na posicao informada.
- *       • Restaurante zerada (cnpj=0) se indice fora dos limites.
+ *       • Restaurante - copia do registro com o CNPJ informado.
+ *       • Restaurante zerada (cnpj=0) se nao encontrado.
  * Condicoes de Acoplamento:
  *     Assertivas de Entrada:
- *       • indice >= 0 e < nRestaurantes.
+ *       • cnpj > 0.
  *       • carregarRestaurantes() foi chamada anteriormente.
  * Assertivas de Saida:
- *   • Retorna copia valida do restaurante ou struct zerada se fora dos limites.
+ *   • Retorna copia valida do restaurante ou struct zerada se nao encontrado.
  *   • O vetor interno permanece inalterado.
  */
-Restaurante obterRestaurantePorIndice(int indice) {
+Restaurante obterRestaurantePorCnpj(long long int cnpj) {
     Restaurante vazio = {0, "", ""};
-    if (indice < 0 || indice >= nRestaurantes) {
-        return vazio;
+    if (cnpj <= 0) return vazio;
+
+    for (int i = 0; i < nRestaurantes; i++) {
+        if (restaurantes[i].cnpj == cnpj)
+            return restaurantes[i];
     }
-    return restaurantes[indice];
+    return vazio;
 }
 
 /* =================================================================

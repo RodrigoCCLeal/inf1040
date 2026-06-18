@@ -65,7 +65,7 @@ $(BIN_MAIN): $(SRC_MAIN) $(SRC_PRINC) $(SRC_PERF) $(SRC_POST) $(SRC_AVAL) $(SRC_
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 # Avaliacao - Agora depende de pratos.c devido a validacao getPratos()
-$(BIN_AVAL): $(TEST_AVAL) $(SRC_AVAL) $(SRC_PRAT)
+$(BIN_AVAL): $(TEST_AVAL) $(SRC_AVAL) $(SRC_PRAT) $(SRC_REST)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 # Postar - Depende exclusivamente do seu proprio motor de sessoes
@@ -93,7 +93,7 @@ $(BIN_REST): $(TEST_REST) $(SRC_REST) $(SRC_PRAT) $(SRC_AVAL)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 # Pratos - Agora depende de avaliacao devido a checagem verificarSeAvaliado() para o feed
-$(BIN_PRAT): $(TEST_PRAT) $(SRC_PRAT) $(SRC_AVAL) $(SRC_PERF)
+$(BIN_PRAT): $(TEST_PRAT) $(SRC_PRAT) $(SRC_AVAL) $(SRC_PERF) $(SRC_REST)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 # ================================================================
