@@ -8,7 +8,7 @@
  * gravacao para as APIs publicas especificas de cada modulo especialista.
  */
 
-#include "principal.h"
+#include "inicializar.h"
 #include "../perfil/perfil.h"
 #include "../restaurante/restaurante.h"
 #include "../pratos/pratos.h"

@@ -1,5 +1,5 @@
 # Makefile - Foodies
-# Modulos: Avaliacao, Postar, Buscar, Feed, Perfil, Principal, Restaurante, Pratos
+# Modulos: Avaliacao, Postar, Buscar, Feed, Perfil, inicializar, Restaurante, Pratos
 #
 # Uso:
 #   make                    - compila o programa principal e todos os testes
@@ -16,7 +16,7 @@ DIR_POST   = postar
 DIR_BUSCAR = buscar
 DIR_FEED   = feed
 DIR_PERF   = perfil
-DIR_PRINC  = principal
+DIR_PRINC  = inicializar
 DIR_REST   = restaurante
 DIR_PRAT   = pratos
 DIR_TEST   = testes
@@ -27,7 +27,7 @@ SRC_POST   = $(DIR_POST)/postar.c
 SRC_BUSCAR = $(DIR_BUSCAR)/buscar.c
 SRC_FEED   = $(DIR_FEED)/feed.c
 SRC_PERF   = $(DIR_PERF)/perfil.c
-SRC_PRINC  = $(DIR_PRINC)/principal.c
+SRC_PRINC  = $(DIR_PRINC)/inicializar.c
 SRC_REST   = $(DIR_REST)/restaurante.c
 SRC_PRAT   = $(DIR_PRAT)/pratos.c
 SRC_MAIN   = main.c
@@ -38,7 +38,7 @@ TEST_POST   = $(DIR_TEST)/teste_postar.c
 TEST_BUSCAR = $(DIR_TEST)/teste_buscar.c
 TEST_FEED   = $(DIR_TEST)/teste_feed.c
 TEST_PERF   = $(DIR_TEST)/teste_perfil.c
-TEST_PRINC  = $(DIR_TEST)/teste_principal.c
+TEST_PRINC  = $(DIR_TEST)/teste_inicializar.c
 TEST_REST   = $(DIR_TEST)/teste_restaurante.c
 TEST_PRAT   = $(DIR_TEST)/teste_pratos.c
 
@@ -48,7 +48,7 @@ BIN_POST   = $(DIR_TEST)/teste_postar
 BIN_BUSCAR = $(DIR_TEST)/teste_buscar
 BIN_FEED   = $(DIR_TEST)/teste_feed
 BIN_PERF   = $(DIR_TEST)/teste_perfil
-BIN_PRINC  = $(DIR_TEST)/teste_principal
+BIN_PRINC  = $(DIR_TEST)/teste_inicializar
 BIN_REST   = $(DIR_TEST)/teste_restaurante
 BIN_PRAT   = $(DIR_TEST)/teste_pratos
 BIN_MAIN   = foodies
@@ -60,7 +60,7 @@ BIN_MAIN   = foodies
 all: $(BIN_MAIN) $(BIN_AVAL) $(BIN_POST) $(BIN_BUSCAR) $(BIN_FEED) \
      $(BIN_PERF) $(BIN_PRINC) $(BIN_REST) $(BIN_PRAT)
 
-# Programa Principal - Garante link com todos os modulos do ecossistema
+# Programa inicializar - Garante link com todos os modulos do ecossistema
 $(BIN_MAIN): $(SRC_MAIN) $(SRC_PRINC) $(SRC_PERF) $(SRC_POST) $(SRC_AVAL) $(SRC_BUSCAR) $(SRC_FEED) $(SRC_REST) $(SRC_PRAT)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
@@ -84,7 +84,7 @@ $(BIN_FEED): $(TEST_FEED) $(SRC_FEED) $(SRC_POST) $(SRC_PRAT) $(SRC_AVAL) $(SRC_
 $(BIN_PERF): $(TEST_PERF) $(SRC_PERF) $(SRC_POST)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Principal - Orquestrador central de cargas e salvamentos JSON
+# inicializar - Orquestrador central de cargas e salvamentos JSON
 $(BIN_PRINC): $(TEST_PRINC) $(SRC_PRINC) $(SRC_PERF) $(SRC_AVAL) $(SRC_REST) $(SRC_PRAT) $(SRC_POST)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
@@ -117,7 +117,7 @@ testes: all
 	@echo "--- teste_perfil ---"
 	./$(BIN_PERF)
 	@echo ""
-	@echo "--- teste_principal ---"
+	@echo "--- teste_inicializar ---"
 	./$(BIN_PRINC)
 	@echo ""
 	@echo "--- teste_restaurante ---"
@@ -134,7 +134,7 @@ teste_postar:     $(BIN_POST)  ; ./$(BIN_POST)
 teste_buscar:     $(BIN_BUSCAR); ./$(BIN_BUSCAR)
 teste_feed:       $(BIN_FEED)  ; ./$(BIN_FEED)
 teste_perfil:     $(BIN_PERF)  ; ./$(BIN_PERF)
-teste_principal:  $(BIN_PRINC) ; ./$(BIN_PRINC)
+teste_inicializar:  $(BIN_PRINC) ; ./$(BIN_PRINC)
 teste_restaurante:$(BIN_REST)  ; ./$(BIN_REST)
 teste_pratos:     $(BIN_PRAT)  ; ./$(BIN_PRAT)
 
@@ -143,4 +143,4 @@ teste_pratos:     $(BIN_PRAT)  ; ./$(BIN_PRAT)
 # ================================================================
 
 limpar:
-	del /f /q $(BIN_MAIN).exe testes\teste_avaliacao.exe testes\teste_postar.exe testes\teste_buscar.exe testes\teste_feed.exe testes\teste_perfil.exe testes\teste_principal.exe testes\teste_restaurante.exe testes\teste_pratos.exe 2>nul || exit 0
+	del /f /q $(BIN_MAIN).exe testes\teste_avaliacao.exe testes\teste_postar.exe testes\teste_buscar.exe testes\teste_feed.exe testes\teste_perfil.exe testes\teste_inicializar.exe testes\teste_restaurante.exe testes\teste_pratos.exe 2>nul || exit 0

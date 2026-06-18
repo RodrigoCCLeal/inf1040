@@ -1,6 +1,6 @@
 /*
- * teste_principal.c
- * Testes unitarios - Modulo Principal (Foodies)
+ * inicializar.c
+ * Testes unitarios - Modulo Inicializar (Foodies)
  *
  * Cobre: iniciarApp, encerrarApp, carregarAvaliacoes, salvarAvaliacoes
  * Casos de teste sob arquitetura encapsulada e protegida por contratos.
@@ -11,7 +11,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "../principal/principal.h"
+#include "../inicializar/inicializar.h"
 #include "../perfil/perfil.h"
 #include "../avaliacao/avaliacao.h"
 

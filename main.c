@@ -13,7 +13,7 @@
 #include <string.h>
 #include <signal.h>
 
-#include "principal/principal.h"
+#include "inicializar/inicializar.h"
 #include "perfil/perfil.h"
 #include "postar/postar.h"
 #include "avaliacao/avaliacao.h"
