@@ -42,10 +42,10 @@ echo --- Modulo Perfil ---
 Testes\teste_perfil
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
-REM --- teste_principal ---
+REM --- teste_inicializar ---
 echo.
-echo --- Modulo Principal ---
-Testes\teste_principal
+echo --- Modulo Inicializar ---
+Testes\teste_inicializar
 if %ERRORLEVEL% == 0 (set /a PASSOU+=1) else (set /a FALHOU+=1)
 
 REM --- teste_restaurante ---
